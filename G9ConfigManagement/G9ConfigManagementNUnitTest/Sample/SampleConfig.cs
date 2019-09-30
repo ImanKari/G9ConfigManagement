@@ -16,7 +16,7 @@ namespace G9ConfigManagementNUnitTest.Sample
 
         public SampleConfig()
         {
-            ConfigVersion = "1.0.0.0";
+            ConfigVersion = "1.3.0.0";
             UserName = "ImanKari";
             Password = "G9Studio";
             SubConfig = new SampleSubConfig();

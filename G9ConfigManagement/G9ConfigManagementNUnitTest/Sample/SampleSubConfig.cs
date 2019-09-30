@@ -11,8 +11,8 @@ namespace G9ConfigManagementNUnitTest.Sample
         public SampleSubConfig()
         {
             Active = true;
-            SaveTime = 10;
-            SampleSubSub = new SampleSubSubConfig();
+            SaveTime = 30;
+            SampleSubTwo = new SampleSubSubConfig();
         }
 
         public bool Active { set; get; }
@@ -20,7 +20,7 @@ namespace G9ConfigManagementNUnitTest.Sample
         [Hint("Set save time in second")]
         public int SaveTime { set; get; }
 
-        public SampleSubSubConfig SampleSubSub { set; get; }
+        public SampleSubSubConfig SampleSubTwo { set; get; }
 
 
         [Hint("Set start date time")]

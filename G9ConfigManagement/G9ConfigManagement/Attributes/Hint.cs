@@ -1,18 +1,25 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace G9ConfigManagement.Attributes
 {
-    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = true, Inherited = false)]
+    /// <summary>
+    ///     This attribute used for added hint comment for config item
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = true)]
     public class Hint : Attribute
     {
-
-        public string HintForProperty { get; }
-
+        /// <summary>
+        ///     Constructor
+        /// </summary>
+        /// <param name="customHint">Custom hint (comment for xml config item)</param>
         public Hint(string customHint)
         {
             HintForProperty = customHint;
         }
+
+        /// <summary>
+        ///     Save hint
+        /// </summary>
+        public string HintForProperty { get; }
     }
 }

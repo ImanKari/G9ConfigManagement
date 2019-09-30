@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using G9ConfigManagement;
 using G9ConfigManagementNUnitTest.Sample;
 using NUnit.Framework;
@@ -7,6 +6,7 @@ namespace G9ConfigManagementNUnitTest
 {
     public class G9ConfigManagementUnitTest
     {
+        public const string ConfigFileName = "Configuration.Config";
 
         public G9ConfigManagement_Singleton<SampleConfig> Configuration;
 
@@ -16,15 +16,37 @@ namespace G9ConfigManagementNUnitTest
         }
 
         [Test]
-        public void InitializeConfig()
+        [Order(1)]
+        public void InitializeConfigWithoutSetName()
         {
-            Configuration = G9ConfigManagement_Singleton<SampleConfig>.GetInstance("Configuration.Config");
+            // Initialize config file
+            Configuration = G9ConfigManagement_Singleton<SampleConfig>.GetInstance();
 
-            Debug.WriteLine(Configuration.ConfigFileName);
+            // Initialize config
+            var oConfig = new SampleConfig();
 
-            Debug.WriteLine(Configuration.Configuration.ConfigVersion);
-            Debug.WriteLine(Configuration.Configuration.UserName);
-            Debug.WriteLine(Configuration.Configuration.Password);
+            // Check config file name
+            Assert.AreEqual(Configuration.ConfigFileName, typeof(SampleConfig).Name);
+
+            // Check version
+            Assert.AreEqual(Configuration.Configuration.ConfigVersion, oConfig.ConfigVersion);
+        }
+
+        [Test]
+        [Order(2)]
+        public void InitializeConfigWithSetCustomName()
+        {
+            // Initialize config file
+            Configuration = G9ConfigManagement_Singleton<SampleConfig>.GetInstance(ConfigFileName);
+
+            // Initialize config
+            var oConfig = new SampleConfig();
+
+            // Check config file name
+            Assert.AreEqual(Configuration.ConfigFileName, ConfigFileName);
+
+            // Check version
+            Assert.AreEqual(Configuration.Configuration.ConfigVersion, oConfig.ConfigVersion);
         }
     }
 }
