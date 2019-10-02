@@ -80,7 +80,7 @@ namespace G9ConfigManagement.Helper
                 if (string.IsNullOrEmpty(_configXmlDocument["Configuration"]?["ConfigVersion"]?.InnerText) ||
                     _configXmlDocument["Configuration"]?["ConfigVersion"]?.InnerText != ConfigDataType.ConfigVersion)
                 {
-                    LoadConfigByType();
+                    LoadConfigByType(false);
                     File.Delete(configFileName);
                     _configXmlDocument = new XmlDocument();
                     CreateXmlConfigByType();
@@ -88,7 +88,7 @@ namespace G9ConfigManagement.Helper
                 // Else load config from config file
                 else
                 {
-                    LoadConfigByType();
+                    LoadConfigByType(true);
                 }
             }
             else
@@ -164,7 +164,10 @@ namespace G9ConfigManagement.Helper
             if (memberObject == null) return;
 
             // Add Comment if need
-            WriteCommentElement(rootNode, memberPropertyInfo, memberObject);
+            WriteHintCommentToXml(rootNode, memberPropertyInfo, memberObject);
+
+            // Add notice required if need
+            WriteRequiredNoticeToXml(rootNode, memberPropertyInfo);
 
             if (memberPropertyInfo.PropertyType.IsValueType || memberPropertyInfo.PropertyType == typeof(string))
             {
@@ -187,15 +190,15 @@ namespace G9ConfigManagement.Helper
         #endregion
 
         /// <summary>
-        ///     Write comment element to xml
+        ///     Check property or field and write comment element to xml if has hint attribute
         /// </summary>
         /// <param name="rootNode">Specify root xml node for write</param>
         /// <param name="memberPropertyInfo">Specify property information for get information</param>
         /// <param name="memberObject">Object of config for read comment value</param>
 
-        #region WriteCommentElement
+        #region WriteHintCommentToXml
 
-        private void WriteCommentElement(XmlNode rootNode, PropertyInfo memberPropertyInfo, object memberObject)
+        private void WriteHintCommentToXml(XmlNode rootNode, PropertyInfo memberPropertyInfo, object memberObject)
         {
             #region Hint Comment
 
@@ -207,10 +210,8 @@ namespace G9ConfigManagement.Helper
             {
                 if (isConfigVersion)
                 {
-                    var hintComment =
-                        _configXmlDocument.CreateComment(
-                            "Specify config version (automatic set by config management, don't change)");
-                    rootNode.AppendChild(hintComment);
+                    // Write comment
+                    WriteComment("Specify config version (automatic set by config management, don't change)", rootNode);
                 }
                 else
                 {
@@ -219,8 +220,8 @@ namespace G9ConfigManagement.Helper
                         Hint oHint;
                         if ((oHint = hintAttr[i] as Hint) == null || string.IsNullOrEmpty(oHint.HintForProperty))
                             continue;
-                        var hintComment = _configXmlDocument.CreateComment(oHint.HintForProperty);
-                        rootNode.AppendChild(hintComment);
+                        // Write comment
+                        WriteComment(oHint.HintForProperty, rootNode);
                     }
                 }
             }
@@ -231,16 +232,52 @@ namespace G9ConfigManagement.Helper
         #endregion
 
         /// <summary>
+        ///     Check property or field and write required notice element to xml if has hint attribute
+        /// </summary>
+        /// <param name="rootNode">Specify root xml node for write</param>
+        /// <param name="memberPropertyInfo">Specify property information for get information</param>
+
+        #region WriteRequiredNoticeToXml
+
+        private void WriteRequiredNoticeToXml(XmlNode rootNode, PropertyInfo memberPropertyInfo)
+        {
+            if (memberPropertyInfo.GetCustomAttributes(typeof(Required)).Any())
+            {
+                // Write comment
+                WriteComment(" ### Notice: This element is required! ### ", rootNode);
+            }
+        }
+
+        #endregion
+
+        /// <summary>
+        ///     Write comment to xml
+        /// </summary>
+        /// <param name="comment">Custom comment message</param>
+        /// <param name="rootNode">Specify root xml node for write</param>
+
+        #region WriteComment
+
+        private void WriteComment(string comment, XmlNode rootNode)
+        {
+            var hintComment = _configXmlDocument.CreateComment(comment);
+            rootNode.AppendChild(hintComment);
+        }
+
+        #endregion
+
+        /// <summary>
         ///     Set config object by xml data
         /// </summary>
+        /// <param name="checkRequired">Check required item</param>
 
         #region LoadConfigByType
 
-        private void LoadConfigByType()
+        private void LoadConfigByType(bool checkRequired)
         {
             ReadXmlByPropertiesInfo(
                 ConfigDataType.GetType().GetProperties().Where(s => !Attribute.IsDefined(s, typeof(Ignore))).ToArray(),
-                ConfigDataType, _configXmlDocument["Configuration"]);
+                ConfigDataType, _configXmlDocument["Configuration"], checkRequired);
         }
 
         #endregion
@@ -251,16 +288,19 @@ namespace G9ConfigManagement.Helper
         /// <param name="propertiesInfo">Specify all property infos from config object</param>
         /// <param name="propertyObject">Config object</param>
         /// <param name="element">Element for read</param>
+        /// <param name="checkRequired">Check required item</param>
 
         #region ReadXmlByPropertiesInfo
 
-        private void ReadXmlByPropertiesInfo(PropertyInfo[] propertiesInfo, object propertyObject, XmlElement element)
+        private void ReadXmlByPropertiesInfo(PropertyInfo[] propertiesInfo, object propertyObject, XmlElement element,
+            bool checkRequired)
         {
             // Return if object is null
             if (propertyObject == null || element == null) return;
 
             // Create elements with properties info
-            for (var i = 0; i < propertiesInfo.Length; i++) ReadElement(propertiesInfo[i], propertyObject, element);
+            for (var i = 0; i < propertiesInfo.Length; i++)
+                ReadElement(propertiesInfo[i], propertyObject, element, checkRequired);
         }
 
         #endregion
@@ -271,20 +311,30 @@ namespace G9ConfigManagement.Helper
         /// <param name="memberPropertyInfo">Specify property information for get information</param>
         /// <param name="memberObject">Object of config for set values from xml</param>
         /// <param name="element">Specify element for read</param>
+        /// <param name="checkRequired">Check required item</param>
 
         #region ReadElement
 
-        private void ReadElement(PropertyInfo memberPropertyInfo, object memberObject, XmlElement element)
+        private void ReadElement(PropertyInfo memberPropertyInfo, object memberObject, XmlElement element,
+            bool checkRequired)
         {
             if (memberPropertyInfo.PropertyType.IsValueType || memberPropertyInfo.PropertyType == typeof(string))
+            {
+                // Check for required config item
+                if (checkRequired && memberPropertyInfo.GetCustomAttributes(typeof(Required)).Any() &&
+                    string.IsNullOrEmpty(element[memberPropertyInfo.Name]?.InnerText))
+                    throw new Exception(
+                        $"Field or property {memberPropertyInfo.Name} in config is requirement, but isn't set in the config file. config file name:'{ConfigFileName}'");
+                // Set config value
                 memberPropertyInfo.SetValue(memberObject,
                     CastStringToPropertyType(memberPropertyInfo, element[memberPropertyInfo.Name]?.InnerText));
+            }
             else
                 ReadXmlByPropertiesInfo(
                     memberPropertyInfo.PropertyType.GetProperties().Where(s => !Attribute.IsDefined(s, typeof(Ignore)))
                         .ToArray(),
                     memberObject.GetType().GetProperty(memberPropertyInfo.Name)?.GetValue(memberObject),
-                    element[memberPropertyInfo.Name]);
+                    element[memberPropertyInfo.Name], checkRequired);
         }
 
         #endregion
@@ -302,7 +352,9 @@ namespace G9ConfigManagement.Helper
         {
             try
             {
+                // Parse for enum
                 if (propertyInformation.PropertyType.IsEnum) return Enum.Parse(propertyInformation.PropertyType, value);
+                // Parse for other type
                 return Convert.ChangeType(value, propertyInformation.PropertyType);
             }
             catch (Exception ex)

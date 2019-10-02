@@ -30,6 +30,7 @@ namespace G9ConfigManagementNUnitTest.Sample
         [Hint("Set password for service")]
         public string Password { set; get; }
 
+        [Required]
         [Hint("Set type of user")]
         [Hint("Values: " + nameof(UserType.Admin) + " - " + nameof(UserType.Editor))]
         [Hint("Default values " + nameof(UserType.Admin))]
