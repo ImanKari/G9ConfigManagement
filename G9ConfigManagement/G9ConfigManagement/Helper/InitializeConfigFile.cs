@@ -48,13 +48,18 @@ namespace G9ConfigManagement.Helper
         ///     Constructor
         /// </summary>
         /// <param name="configFileName">Specify config file name</param>
+        /// <param name="customConfigObject">
+        /// Optional: Specify custom object for create config xml file.
+        /// Just for create, if created don't use
+        /// </param>
 
         #region InitializeConfigFile
 
-        public InitializeConfigFile(string configFileName)
+        public InitializeConfigFile(string configFileName, TConfigDataType customConfigObject = null)
         {
-            // Initialize config
-            ConfigDataType = new TConfigDataType();
+            // Initialize config if custom object is null
+            ConfigDataType = customConfigObject ?? new TConfigDataType();
+
             // Check version null
             if (string.IsNullOrEmpty(ConfigDataType.ConfigVersion))
                 throw new NullReferenceException(

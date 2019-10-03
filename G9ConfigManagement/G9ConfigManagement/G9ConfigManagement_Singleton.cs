@@ -46,17 +46,22 @@ namespace G9ConfigManagement
         ///     Constructor
         ///     Initialize requirement data
         /// </summary>
+        /// <param name="configFileName">Specify config file name</param>
+        /// <param name="customConfigObject">
+        /// Optional: Specify custom object for create config xml file.
+        /// Just for create, if created don't use
+        /// </param>
 
         #region G9LogConfig
 
-        private G9ConfigManagement_Singleton(string configFileName)
+        private G9ConfigManagement_Singleton(string configFileName, TConfigDataType customConfigObject = null)
         {
             try
             {
                 // Set config file name 
                 ConfigFileName = configFileName;
                 // Initialize config files
-                _configsInformation.Add(ConfigFileName, new InitializeConfigFile<TConfigDataType>(configFileName));
+                _configsInformation.Add(ConfigFileName, new InitializeConfigFile<TConfigDataType>(configFileName, customConfigObject));
             }
             catch (Exception ex)
             {
@@ -73,10 +78,13 @@ namespace G9ConfigManagement
         /// </summary>
         /// <param name="configFileName">Specify name of config file, if set null => file name set = config type name</param>
         /// <returns>Instance of class</returns>
-
+        /// <param name="customConfigObject">
+        /// Optional: Specify custom object for create config xml file.
+        /// Just for create, if created don't use
+        /// </param>
         #region G9LogConfig_Singleton
 
-        public static G9ConfigManagement_Singleton<TConfigDataType> GetInstance(string configFileName = null)
+        public static G9ConfigManagement_Singleton<TConfigDataType> GetInstance(string configFileName = null, TConfigDataType customConfigObject = null)
         {
             // Set config file name if it's null
             if (string.IsNullOrEmpty(configFileName))
@@ -85,7 +93,7 @@ namespace G9ConfigManagement
             // Check and instance new config if need
             if (!_configsManagement.ContainsKey(configFileName))
                 _configsManagement.Add(configFileName,
-                    new G9ConfigManagement_Singleton<TConfigDataType>(configFileName));
+                    new G9ConfigManagement_Singleton<TConfigDataType>(configFileName, customConfigObject));
 
             // return config
             return _configsManagement[configFileName];
