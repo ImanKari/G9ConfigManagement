@@ -136,7 +136,8 @@ namespace G9ConfigManagement.Helper
                         !Attribute.IsDefined(s, typeof(Ignore)) && s.CanRead && s.CanWrite)
                     .ToArray();
             return objectForParse.GetType().GetProperties()
-                .Where(s => !Attribute.IsDefined(s, typeof(Ignore)) && s.CanRead && s.CanWrite)
+                .Where(s => !Attribute.IsDefined(s, typeof(Ignore)) && s.CanRead && s.CanWrite &&
+                            s.Name != nameof(ConfigDataType.ConfigVersion))
                 .ToArray();
         }
 
@@ -161,6 +162,9 @@ namespace G9ConfigManagement.Helper
             WriteXmlByPropertiesInfo(rootNode,
                 GetPropertiesInfosFromObject(ConfigDataType),
                 ConfigDataType);
+
+            // Add config version to xml
+            AddConfigVersionToXml(rootNode);
 
             // Add data type xml
             AddConfigDataTypeToXml(rootNode);
@@ -253,23 +257,15 @@ namespace G9ConfigManagement.Helper
 
             // Set hint comment for config
             var hintAttr = memberPropertyInfo.GetCustomAttributes(typeof(Hint)).ToArray();
-            var isConfigVersion = false;
-            if (memberObject is TConfigDataType configVersion &&
-                (isConfigVersion = memberPropertyInfo.Name == nameof(configVersion.ConfigVersion)) || hintAttr.Any())
-            {
-                if (isConfigVersion)
+            if (hintAttr.Any())
+                for (var i = 0; i < hintAttr.Length; i++)
+                {
+                    Hint oHint;
+                    if ((oHint = hintAttr[i] as Hint) == null || string.IsNullOrEmpty(oHint.HintForProperty))
+                        continue;
                     // Write comment
-                    WriteComment("Specify config version (automatic set by config management, don't change)", rootNode);
-                else
-                    for (var i = 0; i < hintAttr.Length; i++)
-                    {
-                        Hint oHint;
-                        if ((oHint = hintAttr[i] as Hint) == null || string.IsNullOrEmpty(oHint.HintForProperty))
-                            continue;
-                        // Write comment
-                        WriteComment(oHint.HintForProperty, rootNode);
-                    }
-            }
+                    WriteComment(oHint.HintForProperty, rootNode);
+                }
 
             #endregion
         }
@@ -436,6 +432,24 @@ namespace G9ConfigManagement.Helper
             for (var i = 0; i < hashBytes.Length; i++)
                 hashBytes[i].TryFormat(stringBuffer.Slice(2 * i), out _, "x2");
             return new string(stringBuffer);
+        }
+
+        #endregion
+
+        /// <summary>
+        ///     Add config version element with comment to xml
+        /// </summary>
+        /// <param name="rootNode">specify node for write</param>
+
+        #region AddConfigVersionToXml
+
+        private void AddConfigVersionToXml(XmlNode rootNode)
+        {
+            // Write comment
+            WriteComment("Specify config version (automatic set by config management, don't change)", rootNode);
+            XmlNode node = _configXmlDocument.CreateElement(nameof(ConfigDataType.ConfigVersion));
+            node.InnerText = ConfigDataType.ConfigVersion;
+            rootNode.AppendChild(node);
         }
 
         #endregion
