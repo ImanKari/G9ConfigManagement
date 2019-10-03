@@ -185,7 +185,8 @@ namespace G9ConfigManagement.Helper
             if (propertyObject == null) return;
 
             // Create elements with properties info
-            for (var i = 0; i < propertiesInfo.Length; i++) WriteElement(rootNode, propertiesInfo[i], propertyObject);
+            for (var i = 0; i < propertiesInfo.Length; i++) 
+                WriteElement(rootNode, propertiesInfo[i], propertyObject);
         }
 
         #endregion
@@ -213,7 +214,7 @@ namespace G9ConfigManagement.Helper
             if (memberPropertyInfo.PropertyType.IsValueType || memberPropertyInfo.PropertyType == typeof(string))
             {
                 XmlNode node = _configXmlDocument.CreateElement(memberPropertyInfo.Name);
-                node.InnerText = memberPropertyInfo.GetValue(memberObject).ToString();
+                node.InnerText = memberPropertyInfo.GetValue(memberObject)?.ToString() ?? string.Empty;
                 rootNode.AppendChild(node);
             }
             else
