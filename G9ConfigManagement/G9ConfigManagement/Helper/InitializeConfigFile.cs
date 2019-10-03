@@ -100,6 +100,17 @@ namespace G9ConfigManagement.Helper
 
         #endregion
 
+        private PropertyInfo[] GetPropertiesInfosFromObject(object objectForParse)
+        {
+            if (objectForParse is PropertyInfo)
+                return (objectForParse as PropertyInfo).PropertyType.GetProperties().Where(s =>
+                        !Attribute.IsDefined(s, typeof(Ignore)) && s.CanRead && s.CanWrite)
+                    .ToArray();
+            return objectForParse.GetType().GetProperties()
+                .Where(s => !Attribute.IsDefined(s, typeof(Ignore)) && s.CanRead && s.CanWrite)
+                .ToArray();
+        }
+
         /// <summary>
         ///     Create xml config file by data type
         /// </summary>
@@ -117,7 +128,7 @@ namespace G9ConfigManagement.Helper
 
             // Get all properties without attribute ignore
             WriteXmlByPropertiesInfo(rootNode,
-                ConfigDataType.GetType().GetProperties().Where(s => !Attribute.IsDefined(s, typeof(Ignore))).ToArray(),
+                GetPropertiesInfosFromObject(ConfigDataType),
                 ConfigDataType);
 
             // Add data type xml
@@ -181,8 +192,7 @@ namespace G9ConfigManagement.Helper
                 var newNode = rootNode.AppendChild(node);
                 WriteXmlByPropertiesInfo(
                     newNode,
-                    memberPropertyInfo.PropertyType.GetProperties().Where(s => !Attribute.IsDefined(s, typeof(Ignore)))
-                        .ToArray(),
+                    GetPropertiesInfosFromObject(memberPropertyInfo),
                     memberObject.GetType().GetProperty(memberPropertyInfo.Name)?.GetValue(memberObject));
             }
         }
@@ -190,7 +200,7 @@ namespace G9ConfigManagement.Helper
         #endregion
 
         /// <summary>
-        ///     Check property or field and write comment element to xml if has hint attribute
+        ///     Check property and write comment element to xml if has hint attribute
         /// </summary>
         /// <param name="rootNode">Specify root xml node for write</param>
         /// <param name="memberPropertyInfo">Specify property information for get information</param>
@@ -232,7 +242,7 @@ namespace G9ConfigManagement.Helper
         #endregion
 
         /// <summary>
-        ///     Check property or field and write required notice element to xml if has hint attribute
+        ///     Check property and write required notice element to xml if has hint attribute
         /// </summary>
         /// <param name="rootNode">Specify root xml node for write</param>
         /// <param name="memberPropertyInfo">Specify property information for get information</param>
@@ -276,7 +286,7 @@ namespace G9ConfigManagement.Helper
         private void LoadConfigByType(bool checkRequired)
         {
             ReadXmlByPropertiesInfo(
-                ConfigDataType.GetType().GetProperties().Where(s => !Attribute.IsDefined(s, typeof(Ignore))).ToArray(),
+                GetPropertiesInfosFromObject(ConfigDataType),
                 ConfigDataType, _configXmlDocument["Configuration"], checkRequired);
         }
 
@@ -324,15 +334,14 @@ namespace G9ConfigManagement.Helper
                 if (checkRequired && memberPropertyInfo.GetCustomAttributes(typeof(Required)).Any() &&
                     string.IsNullOrEmpty(element[memberPropertyInfo.Name]?.InnerText))
                     throw new Exception(
-                        $"Field or property {memberPropertyInfo.Name} in config is requirement, but isn't set in the config file. config file name:'{ConfigFileName}'");
+                        $"Property {memberPropertyInfo.Name} in config is requirement, but isn't set in the config file. config file name:'{ConfigFileName}'");
                 // Set config value
                 memberPropertyInfo.SetValue(memberObject,
                     CastStringToPropertyType(memberPropertyInfo, element[memberPropertyInfo.Name]?.InnerText));
             }
             else
                 ReadXmlByPropertiesInfo(
-                    memberPropertyInfo.PropertyType.GetProperties().Where(s => !Attribute.IsDefined(s, typeof(Ignore)))
-                        .ToArray(),
+                    GetPropertiesInfosFromObject(memberPropertyInfo),
                     memberObject.GetType().GetProperty(memberPropertyInfo.Name)?.GetValue(memberObject),
                     element[memberPropertyInfo.Name], checkRequired);
         }

@@ -6,7 +6,7 @@ namespace G9ConfigManagement.Attributes
     ///     This attribute used for set config item to check required
     ///     Required just when read from xml config
     /// </summary>
-    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
+    [AttributeUsage(AttributeTargets.Property)]
     public class Required : Attribute
     {
     }

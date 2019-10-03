@@ -5,7 +5,7 @@ namespace G9ConfigManagement.Attributes
     /// <summary>
     ///     This attribute used for added hint comment for config item
     /// </summary>
-    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = true)]
+    [AttributeUsage(AttributeTargets.Property, AllowMultiple = true)]
     public class Hint : Attribute
     {
         /// <summary>

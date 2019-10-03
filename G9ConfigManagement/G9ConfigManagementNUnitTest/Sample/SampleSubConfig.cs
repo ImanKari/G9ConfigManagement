@@ -24,7 +24,7 @@ namespace G9ConfigManagementNUnitTest.Sample
 
 
         [Hint("Set start date time")]
-        public DateTime StartDateTime { set; get; }
+        public DateTime StartDateTime { get; }
 
     }
 }
