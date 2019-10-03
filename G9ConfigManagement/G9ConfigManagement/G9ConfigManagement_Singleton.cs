@@ -88,11 +88,15 @@ namespace G9ConfigManagement
         ///     Optional: Specify custom object for create config xml file.
         ///     Just for create, if created don't use
         /// </param>
+        /// <param name="forceRemake">
+        ///     remake config data and file with config object.
+        ///     Notice: remake xml config even if it exists
+        /// </param>
 
         #region G9ConfigManagement_Singleton
 
         public static G9ConfigManagement_Singleton<TConfigDataType> GetInstance(string configFileName = null,
-            TConfigDataType customConfigObject = null)
+            TConfigDataType customConfigObject = null, bool forceRemake = false)
         {
             // Set config file name if it's null
             if (string.IsNullOrEmpty(configFileName))
@@ -101,7 +105,7 @@ namespace G9ConfigManagement
             // Check and instance new config if need
             if (!_configsManagement.ContainsKey(configFileName))
                 _configsManagement.Add(configFileName,
-                    new G9ConfigManagement_Singleton<TConfigDataType>(configFileName, customConfigObject));
+                    new G9ConfigManagement_Singleton<TConfigDataType>(configFileName, customConfigObject, forceRemake));
 
             // return config
             return _configsManagement[configFileName];
