@@ -48,20 +48,26 @@ namespace G9ConfigManagement
         /// </summary>
         /// <param name="configFileName">Specify config file name</param>
         /// <param name="customConfigObject">
-        /// Optional: Specify custom object for create config xml file.
-        /// Just for create, if created don't use
+        ///     Optional: Specify custom object for create config xml file.
+        ///     Just for create, if exists config file, doesn't use
+        /// </param>
+        /// <param name="forceRemake">
+        ///     remake config data and file with config object.
+        ///     Notice: remake xml config even if it exists
         /// </param>
 
-        #region G9LogConfig
+        #region G9ConfigManagement_Singleton
 
-        private G9ConfigManagement_Singleton(string configFileName, TConfigDataType customConfigObject = null)
+        private G9ConfigManagement_Singleton(string configFileName, TConfigDataType customConfigObject = null,
+            bool forceRemake = false)
         {
             try
             {
                 // Set config file name 
                 ConfigFileName = configFileName;
                 // Initialize config files
-                _configsInformation.Add(ConfigFileName, new InitializeConfigFile<TConfigDataType>(configFileName, customConfigObject));
+                _configsInformation.Add(ConfigFileName,
+                    new InitializeConfigFile<TConfigDataType>(configFileName, customConfigObject, forceRemake));
             }
             catch (Exception ex)
             {
@@ -79,12 +85,14 @@ namespace G9ConfigManagement
         /// <param name="configFileName">Specify name of config file, if set null => file name set = config type name</param>
         /// <returns>Instance of class</returns>
         /// <param name="customConfigObject">
-        /// Optional: Specify custom object for create config xml file.
-        /// Just for create, if created don't use
+        ///     Optional: Specify custom object for create config xml file.
+        ///     Just for create, if created don't use
         /// </param>
-        #region G9LogConfig_Singleton
 
-        public static G9ConfigManagement_Singleton<TConfigDataType> GetInstance(string configFileName = null, TConfigDataType customConfigObject = null)
+        #region G9ConfigManagement_Singleton
+
+        public static G9ConfigManagement_Singleton<TConfigDataType> GetInstance(string configFileName = null,
+            TConfigDataType customConfigObject = null)
         {
             // Set config file name if it's null
             if (string.IsNullOrEmpty(configFileName))
@@ -97,6 +105,22 @@ namespace G9ConfigManagement
 
             // return config
             return _configsManagement[configFileName];
+        }
+
+        #endregion
+
+        /// <summary>
+        ///     Force update config data and file with config object.
+        ///     Notice: remake xml config even if it exists
+        /// </summary>
+        /// <param name="newConfigForUpdate">Specified object of config</param>
+
+        #region ForceUpdate
+
+        public void ForceUpdate(TConfigDataType newConfigForUpdate)
+        {
+            _configsInformation[ConfigFileName] =
+                new InitializeConfigFile<TConfigDataType>(ConfigFileName, newConfigForUpdate, true);
         }
 
         #endregion

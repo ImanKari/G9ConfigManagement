@@ -49,13 +49,18 @@ namespace G9ConfigManagement.Helper
         /// </summary>
         /// <param name="configFileName">Specify config file name</param>
         /// <param name="customConfigObject">
-        /// Optional: Specify custom object for create config xml file.
-        /// Just for create, if created don't use
+        ///     Optional: Specify custom object for create config xml file.
+        ///     Just for create, if created don't use
+        /// </param>
+        /// <param name="forceUpdateWithObject">
+        ///     Specify force update config xml file.
+        ///     Recreate config file
         /// </param>
 
         #region InitializeConfigFile
 
-        public InitializeConfigFile(string configFileName, TConfigDataType customConfigObject = null)
+        public InitializeConfigFile(string configFileName, TConfigDataType customConfigObject = null,
+            bool forceUpdateWithObject = false)
         {
             // Initialize config if custom object is null
             ConfigDataType = customConfigObject ?? new TConfigDataType();
@@ -72,28 +77,38 @@ namespace G9ConfigManagement.Helper
             // If file exists load
             if (File.Exists(configFileName))
             {
-                _configXmlDocument.Load(ConfigFileName);
-                // Check data type is equal with this type
-                if (string.IsNullOrEmpty(_configXmlDocument["Configuration"]?[ConfigDataTypeElement]?.InnerText) ||
-                    _configXmlDocument["Configuration"]?[ConfigDataTypeElement]?.InnerText !=
-                    CreateMd5(ConfigDataType.GetType().FullName ?? ConfigDataType.GetType().Name))
-                    throw new Exception(
-                        $"A file with this name '{configFileName}' exists for another data type. If you need this file for new type of data, please delete it to recreate.");
-
-                // If config version change
-                // Remake with change value
-                if (string.IsNullOrEmpty(_configXmlDocument["Configuration"]?["ConfigVersion"]?.InnerText) ||
-                    _configXmlDocument["Configuration"]?["ConfigVersion"]?.InnerText != ConfigDataType.ConfigVersion)
+                if (customConfigObject != null && forceUpdateWithObject)
                 {
-                    LoadConfigByType(false);
                     File.Delete(configFileName);
                     _configXmlDocument = new XmlDocument();
                     CreateXmlConfigByType();
                 }
-                // Else load config from config file
                 else
                 {
-                    LoadConfigByType(true);
+                    _configXmlDocument.Load(ConfigFileName);
+                    // Check data type is equal with this type
+                    if (string.IsNullOrEmpty(_configXmlDocument["Configuration"]?[ConfigDataTypeElement]?.InnerText) ||
+                        _configXmlDocument["Configuration"]?[ConfigDataTypeElement]?.InnerText !=
+                        CreateMd5(ConfigDataType.GetType().FullName ?? ConfigDataType.GetType().Name))
+                        throw new Exception(
+                            $"A file with this name '{configFileName}' exists for another data type. If you need this file for new type of data, please delete it to recreate.");
+
+                    // If config version change
+                    // Remake with change value
+                    if (string.IsNullOrEmpty(_configXmlDocument["Configuration"]?["ConfigVersion"]?.InnerText) ||
+                        _configXmlDocument["Configuration"]?["ConfigVersion"]?.InnerText !=
+                        ConfigDataType.ConfigVersion)
+                    {
+                        LoadConfigByType(false);
+                        File.Delete(configFileName);
+                        _configXmlDocument = new XmlDocument();
+                        CreateXmlConfigByType();
+                    }
+                    // Else load config from config file
+                    else
+                    {
+                        LoadConfigByType(true);
+                    }
                 }
             }
             else
@@ -105,6 +120,14 @@ namespace G9ConfigManagement.Helper
 
         #endregion
 
+        /// <summary>
+        ///     Get properties info from custom object
+        /// </summary>
+        /// <param name="objectForParse">Specify object for get property info</param>
+        /// <returns></returns>
+
+        #region GetPropertiesInfosFromObject
+
         private PropertyInfo[] GetPropertiesInfosFromObject(object objectForParse)
         {
             if (objectForParse is PropertyInfo)
@@ -115,6 +138,8 @@ namespace G9ConfigManagement.Helper
                 .Where(s => !Attribute.IsDefined(s, typeof(Ignore)) && s.CanRead && s.CanWrite)
                 .ToArray();
         }
+
+        #endregion
 
         /// <summary>
         ///     Create xml config file by data type
@@ -224,12 +249,9 @@ namespace G9ConfigManagement.Helper
                 (isConfigVersion = memberPropertyInfo.Name == nameof(configVersion.ConfigVersion)) || hintAttr.Any())
             {
                 if (isConfigVersion)
-                {
                     // Write comment
                     WriteComment("Specify config version (automatic set by config management, don't change)", rootNode);
-                }
                 else
-                {
                     for (var i = 0; i < hintAttr.Length; i++)
                     {
                         Hint oHint;
@@ -238,7 +260,6 @@ namespace G9ConfigManagement.Helper
                         // Write comment
                         WriteComment(oHint.HintForProperty, rootNode);
                     }
-                }
             }
 
             #endregion
@@ -257,10 +278,8 @@ namespace G9ConfigManagement.Helper
         private void WriteRequiredNoticeToXml(XmlNode rootNode, PropertyInfo memberPropertyInfo)
         {
             if (memberPropertyInfo.GetCustomAttributes(typeof(Required)).Any())
-            {
                 // Write comment
                 WriteComment(" ### Notice: This element is required! ### ", rootNode);
-            }
         }
 
         #endregion
@@ -345,10 +364,12 @@ namespace G9ConfigManagement.Helper
                     CastStringToPropertyType(memberPropertyInfo, element[memberPropertyInfo.Name]?.InnerText));
             }
             else
+            {
                 ReadXmlByPropertiesInfo(
                     GetPropertiesInfosFromObject(memberPropertyInfo),
                     memberObject.GetType().GetProperty(memberPropertyInfo.Name)?.GetValue(memberObject),
                     element[memberPropertyInfo.Name], checkRequired);
+            }
         }
 
         #endregion
