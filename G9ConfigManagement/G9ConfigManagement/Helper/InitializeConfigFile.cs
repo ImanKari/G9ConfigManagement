@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Security.Cryptography;
 using System.Text;
 using System.Xml;
@@ -185,8 +186,15 @@ namespace G9ConfigManagement.Helper
             if (propertyObject == null) return;
 
             // Create elements with properties info
-            for (var i = 0; i < propertiesInfo.Length; i++) 
-                WriteElement(rootNode, propertiesInfo[i], propertyObject);
+            if (propertiesInfo.Any())
+            {
+                for (var i = 0; i < propertiesInfo.Length; i++)
+                    WriteElement(rootNode, propertiesInfo[i], propertyObject);
+            }
+            else
+            {
+                WriteComment($"Property with set and get not found!", rootNode);
+            }
         }
 
         #endregion
