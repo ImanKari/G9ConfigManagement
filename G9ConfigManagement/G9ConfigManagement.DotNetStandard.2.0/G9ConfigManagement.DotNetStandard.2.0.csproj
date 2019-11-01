@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Version>1.4.1.0</Version>
+    <Authors>Iman Kari</Authors>
+    <Company>G9Studio</Company>
+    <Description>Config Management</Description>
+    <Copyright>G9Studio - 2019</Copyright>
+    <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
+    <PackageProjectUrl>http://www.G9TM.com/</PackageProjectUrl>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <AssemblyVersion>1.4.1.0</AssemblyVersion>
+    <FileVersion>1.4.1.0</FileVersion>
+    <RootNamespace>G9ConfigManagement</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="LICENSE.md">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+  </ItemGroup>
+
+</Project>
