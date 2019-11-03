@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>netstandard1.6</TargetFramework>
     <Version>1.4.1.0</Version>
     <Authors>Iman Kari</Authors>
     <Company>G9Studio</Company>
