@@ -18,10 +18,10 @@ namespace G9ConfigManagement.Helper
     internal class InitializeConfigFile<TConfigDataType>
         where TConfigDataType : class, IConfigDataType, new()
     {
-
         #region Enums
+
         /// <summary>
-        /// Specify supported type bye config management
+        ///     Specify supported type bye config management
         /// </summary>
         public enum SupportedTypes
         {
@@ -45,6 +45,7 @@ namespace G9ConfigManagement.Helper
             GuidType,
             IpAddressType
         }
+
         #endregion
 
         #region Fields And Properties
@@ -63,7 +64,7 @@ namespace G9ConfigManagement.Helper
         ///     Save xml document for config
         /// </summary>
         private readonly XmlDocument _configXmlDocument = new XmlDocument();
-        
+
 
         /// <summary>
         ///     Specify config data type element name
@@ -74,7 +75,7 @@ namespace G9ConfigManagement.Helper
         /// <summary>
         ///     Save supported types by config management
         /// </summary>
-        private readonly Type[] _typesSupportedByConfig = new Type[]
+        private readonly Type[] _typesSupportedByConfig =
         {
             typeof(sbyte), typeof(short), typeof(int), typeof(long), typeof(byte), typeof(ushort), typeof(uint),
             typeof(ulong), typeof(char), typeof(float), typeof(double), typeof(decimal), typeof(bool), typeof(Enum),
@@ -163,7 +164,7 @@ namespace G9ConfigManagement.Helper
             }
         }
 
-#endregion
+        #endregion
 
         /// <summary>
         ///     Get properties info from custom object
@@ -171,7 +172,7 @@ namespace G9ConfigManagement.Helper
         /// <param name="objectForParse">Specify object for get property info</param>
         /// <returns></returns>
 
-#region GetPropertiesInfosFromObject
+        #region GetPropertiesInfosFromObject
 
         private PropertyInfo[] GetPropertiesInfosFromObject(object objectForParse)
         {
@@ -196,13 +197,13 @@ namespace G9ConfigManagement.Helper
 #endif
         }
 
-#endregion
+        #endregion
 
         /// <summary>
         ///     Create xml config file by data type
         /// </summary>
 
-#region CreateXmlConfigByType
+        #region CreateXmlConfigByType
 
         private void CreateXmlConfigByType()
         {
@@ -230,10 +231,9 @@ namespace G9ConfigManagement.Helper
 #else
             _configXmlDocument.Save(new FileStream(ConfigFileName, FileMode.Create));
 #endif
-            
         }
 
-#endregion
+        #endregion
 
         /// <summary>
         ///     Read xml and set object from xml
@@ -242,7 +242,7 @@ namespace G9ConfigManagement.Helper
         /// <param name="propertiesInfo">Specify all property infos from config object</param>
         /// <param name="propertyObject">Config object for get values</param>
 
-#region WriteXmlByPropertiesInfo
+        #region WriteXmlByPropertiesInfo
 
         private void WriteXmlByPropertiesInfo(XmlNode rootNode, PropertyInfo[] propertiesInfo, object propertyObject)
         {
@@ -257,7 +257,7 @@ namespace G9ConfigManagement.Helper
                 WriteComment("Property with set and get not found!", rootNode);
         }
 
-#endregion
+        #endregion
 
         /// <summary>
         ///     Write element tag and data to xml
@@ -266,7 +266,7 @@ namespace G9ConfigManagement.Helper
         /// <param name="memberPropertyInfo">Specify property information for get information</param>
         /// <param name="memberObject">Object of config for read comment value</param>
 
-#region WriteElement
+        #region WriteElement
 
         private void WriteElement(XmlNode rootNode, PropertyInfo memberPropertyInfo, object memberObject)
         {
@@ -301,7 +301,7 @@ namespace G9ConfigManagement.Helper
             }
         }
 
-#endregion
+        #endregion
 
         /// <summary>
         ///     Check property and write comment element to xml if has hint attribute
@@ -310,11 +310,11 @@ namespace G9ConfigManagement.Helper
         /// <param name="memberPropertyInfo">Specify property information for get information</param>
         /// <param name="memberObject">Object of config for read comment value</param>
 
-#region WriteHintCommentToXml
+        #region WriteHintCommentToXml
 
         private void WriteHintCommentToXml(XmlNode rootNode, PropertyInfo memberPropertyInfo, object memberObject)
         {
-#region Hint Comment
+            #region Hint Comment
 
             // Set hint comment for config
             var hintAttr = memberPropertyInfo.GetCustomAttributes(typeof(Hint)).ToArray();
@@ -328,10 +328,10 @@ namespace G9ConfigManagement.Helper
                     WriteComment(oHint.HintForProperty, rootNode);
                 }
 
-#endregion
+            #endregion
         }
 
-#endregion
+        #endregion
 
         /// <summary>
         ///     Check property and write required notice element to xml if has hint attribute
@@ -339,7 +339,7 @@ namespace G9ConfigManagement.Helper
         /// <param name="rootNode">Specify root xml node for write</param>
         /// <param name="memberPropertyInfo">Specify property information for get information</param>
 
-#region WriteRequiredNoticeToXml
+        #region WriteRequiredNoticeToXml
 
         private void WriteRequiredNoticeToXml(XmlNode rootNode, PropertyInfo memberPropertyInfo)
         {
@@ -348,7 +348,7 @@ namespace G9ConfigManagement.Helper
                 WriteComment(" ### Notice: This element is required! ### ", rootNode);
         }
 
-#endregion
+        #endregion
 
         /// <summary>
         ///     Write comment to xml
@@ -356,7 +356,7 @@ namespace G9ConfigManagement.Helper
         /// <param name="comment">Custom comment message</param>
         /// <param name="rootNode">Specify root xml node for write</param>
 
-#region WriteComment
+        #region WriteComment
 
         private void WriteComment(string comment, XmlNode rootNode)
         {
@@ -364,14 +364,14 @@ namespace G9ConfigManagement.Helper
             rootNode.AppendChild(hintComment);
         }
 
-#endregion
+        #endregion
 
         /// <summary>
         ///     Set config object by xml data
         /// </summary>
         /// <param name="checkRequired">Check required item</param>
 
-#region LoadConfigByType
+        #region LoadConfigByType
 
         private void LoadConfigByType(bool checkRequired)
         {
@@ -380,7 +380,7 @@ namespace G9ConfigManagement.Helper
                 ConfigDataType, _configXmlDocument["Configuration"], checkRequired);
         }
 
-#endregion
+        #endregion
 
         /// <summary>
         ///     Read xml and set object from xml
@@ -390,7 +390,7 @@ namespace G9ConfigManagement.Helper
         /// <param name="element">Element for read</param>
         /// <param name="checkRequired">Check required item</param>
 
-#region ReadXmlByPropertiesInfo
+        #region ReadXmlByPropertiesInfo
 
         private void ReadXmlByPropertiesInfo(PropertyInfo[] propertiesInfo, object propertyObject, XmlElement element,
             bool checkRequired)
@@ -403,7 +403,7 @@ namespace G9ConfigManagement.Helper
                 ReadElement(propertiesInfo[i], propertyObject, element, checkRequired);
         }
 
-#endregion
+        #endregion
 
         /// <summary>
         ///     Read element from xml and set object
@@ -413,7 +413,7 @@ namespace G9ConfigManagement.Helper
         /// <param name="element">Specify element for read</param>
         /// <param name="checkRequired">Check required item</param>
 
-#region ReadElement
+        #region ReadElement
 
         private void ReadElement(PropertyInfo memberPropertyInfo, object memberObject, XmlElement element,
             bool checkRequired)
@@ -444,7 +444,7 @@ namespace G9ConfigManagement.Helper
             }
         }
 
-#endregion
+        #endregion
 
         /// <summary>
         ///     Cast string value to property type
@@ -453,7 +453,7 @@ namespace G9ConfigManagement.Helper
         /// <param name="value">String value for cast to property type</param>
         /// <returns></returns>
 
-#region CastStringToPropertyType
+        #region CastStringToPropertyType
 
         private object CastStringToPropertyType(PropertyInfo propertyInformation, string value)
         {
@@ -473,7 +473,7 @@ namespace G9ConfigManagement.Helper
             }
         }
 
-#endregion
+        #endregion
 
 
         /// <summary>
@@ -482,7 +482,7 @@ namespace G9ConfigManagement.Helper
         /// <param name="text">Specify text</param>
         /// <returns>Return MD5 from text</returns>
 
-#region CreateMd5
+        #region CreateMd5
 
         private string CreateMd5(string text)
         {
@@ -500,7 +500,7 @@ namespace G9ConfigManagement.Helper
             Span<char> stringBuffer = stackalloc char[32];
             for (var i = 0; i < hashBytes.Length; i++)
                 hashBytes[i].TryFormat(stringBuffer.Slice(2 * i), out _, "x2");
-            return new string(stringBuffer);
+            return new string(stringBuffer).ToLower();
 #else
             // Use input string to calculate MD5 hash
             using (var md5 = MD5.Create())
@@ -511,19 +511,19 @@ namespace G9ConfigManagement.Helper
                 // Convert the byte array to hexadecimal string
                 var sb = new StringBuilder();
                 for (var i = 0; i < hashBytes.Length; i++) sb.Append(hashBytes[i].ToString("X2"));
-                return sb.ToString();
+                return sb.ToString().ToLower();
             }
 #endif
         }
 
-#endregion
+        #endregion
 
         /// <summary>
         ///     Add config version element with comment to xml
         /// </summary>
         /// <param name="rootNode">specify node for write</param>
 
-#region AddConfigVersionToXml
+        #region AddConfigVersionToXml
 
         private void AddConfigVersionToXml(XmlNode rootNode)
         {
@@ -534,14 +534,14 @@ namespace G9ConfigManagement.Helper
             rootNode.AppendChild(node);
         }
 
-#endregion
+        #endregion
 
         /// <summary>
         ///     Generate and add data type element with comment to xml
         /// </summary>
         /// <param name="rootNode">specify node for write</param>
 
-#region AddConfigDataTypeToXml
+        #region AddConfigDataTypeToXml
 
         private void AddConfigDataTypeToXml(XmlNode rootNode)
         {
@@ -554,21 +554,24 @@ namespace G9ConfigManagement.Helper
             rootNode.AppendChild(node);
         }
 
-#endregion
+        #endregion
 
         /// <summary>
-        /// Check type is supported by config management
+        ///     Check type is supported by config management
         /// </summary>
         /// <param name="typeForCheck"></param>
         /// <returns></returns>
-#region CheckTypeIsSupportedByeConfigManagement
+
+        #region CheckTypeIsSupportedByeConfigManagement
+
         private bool CheckTypeIsSupportedByConfigManagement(Type typeForCheck)
         {
             // check with supported array type
             return _typesSupportedByConfig.Any(s => s == typeForCheck);
         }
-#endregion
 
-#endregion
+        #endregion
+
+        #endregion
     }
 }
