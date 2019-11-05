@@ -55,11 +55,19 @@ namespace G9ConfigManagement
         ///     remake config data and file with config object.
         ///     Notice: remake xml config even if it exists
         /// </param>
+        /// <param name="baseApp">
+        ///     <para>Specified base path of application for create config</para>
+        ///     <para>Notice: if set null => use 'BaseDirectory' value</para>
+        /// </param>
+        /// <param name="configExtension">
+        ///     <para>Specified config extension</para>
+        ///     <para>Notice: if not set argument => use default extension '.config'</para>
+        /// </param>
 
         #region G9ConfigManagement_Singleton
 
         private G9ConfigManagement_Singleton(string configFileName, TConfigDataType customConfigObject = null,
-            bool forceRemake = false)
+            bool forceRemake = false, string baseApp = null, string configExtension = null)
         {
             try
             {
@@ -67,7 +75,8 @@ namespace G9ConfigManagement
                 ConfigFileName = configFileName;
                 // Initialize config files
                 _configsInformation.Add(ConfigFileName,
-                    new InitializeConfigFile<TConfigDataType>(configFileName, customConfigObject, forceRemake));
+                    new InitializeConfigFile<TConfigDataType>(configFileName, customConfigObject, forceRemake, baseApp,
+                        configExtension));
             }
             catch (Exception ex)
             {
@@ -92,11 +101,20 @@ namespace G9ConfigManagement
         ///     remake config data and file with config object.
         ///     Notice: remake xml config even if it exists
         /// </param>
+        /// <param name="baseApp">
+        ///     <para>Specified base path of application for create config</para>
+        ///     <para>Notice: if set null => use 'BaseDirectory' value</para>
+        /// </param>
+        /// <param name="configExtension">
+        ///     <para>Specified config extension</para>
+        ///     <para>Notice: if not set argument => use default extension '.config'</para>
+        /// </param>
 
         #region G9ConfigManagement_Singleton
 
         public static G9ConfigManagement_Singleton<TConfigDataType> GetInstance(string configFileName = null,
-            TConfigDataType customConfigObject = null, bool forceRemake = false)
+            TConfigDataType customConfigObject = null, bool forceRemake = false, string baseApp = null,
+            string configExtension = "config")
         {
             // Set config file name if it's null
             if (string.IsNullOrEmpty(configFileName))
@@ -105,7 +123,8 @@ namespace G9ConfigManagement
             // Check and instance new config if need
             if (!_configsManagement.ContainsKey(configFileName))
                 _configsManagement.Add(configFileName,
-                    new G9ConfigManagement_Singleton<TConfigDataType>(configFileName, customConfigObject, forceRemake));
+                    new G9ConfigManagement_Singleton<TConfigDataType>(configFileName, customConfigObject, forceRemake,
+                        baseApp, configExtension));
 
             // return config
             return _configsManagement[configFileName];
@@ -124,7 +143,9 @@ namespace G9ConfigManagement
         public void ForceUpdate(TConfigDataType newConfigForUpdate)
         {
             _configsInformation[ConfigFileName] =
-                new InitializeConfigFile<TConfigDataType>(ConfigFileName, newConfigForUpdate, true);
+                new InitializeConfigFile<TConfigDataType>(ConfigFileName, newConfigForUpdate, true,
+                    _configsInformation[ConfigFileName].BaseAppPath,
+                    _configsInformation[ConfigFileName].ConfigExtension);
         }
 
         #endregion

@@ -82,6 +82,21 @@ namespace G9ConfigManagement.Helper
             typeof(string), typeof(DateTime), typeof(TimeSpan), typeof(Guid), typeof(IPAddress)
         };
 
+        /// <summary>
+        ///     Access to base app path
+        /// </summary>
+        public readonly string BaseAppPath;
+
+        /// <summary>
+        ///     Access to config extension
+        /// </summary>
+        public readonly string ConfigExtension;
+
+        /// <summary>
+        ///     Access full config path and name
+        /// </summary>
+        public readonly string FullConfigPath;
+
         #endregion
 
         #region Methods 
@@ -98,12 +113,54 @@ namespace G9ConfigManagement.Helper
         ///     Specify force update config xml file.
         ///     Recreate config file
         /// </param>
+        /// <param name="baseApp">
+        ///     <para>Specified base path of application for create config</para>
+        ///     <para>Notice: if set null => use 'BaseDirectory' value</para>
+        /// </param>
+        /// <param name="configExtension">
+        ///     <para>Specified config extension</para>
+        ///     <para>Notice: if not set argument => use default extension '.config'</para>
+        /// </param>
 
         #region InitializeConfigFile
 
         public InitializeConfigFile(string configFileName, TConfigDataType customConfigObject = null,
-            bool forceUpdateWithObject = false)
+            bool forceUpdateWithObject = false, string baseApp = null, string configExtension = "config")
         {
+            // Check and set base app
+            BaseAppPath =
+                string.IsNullOrEmpty(baseApp)
+                    ?
+#if (NETSTANDARD2_1 || NETSTANDARD2_0)
+                    AppDomain.CurrentDomain.BaseDirectory
+#else
+                    AppContext.BaseDirectory
+#endif
+                    : baseApp;
+
+            // Check and Set config file name
+            ConfigFileName = string.IsNullOrEmpty(configFileName)
+                ? throw new ArgumentNullException(nameof(configFileName))
+                : configFileName.IndexOfAny(Path.GetInvalidPathChars()) > 0
+                    ? throw new ArgumentException($"Invalid file name exception: '{configFileName}'",
+                        nameof(configFileName))
+                    : configFileName;
+
+
+            // Check and Set config extension
+            ConfigExtension = string.IsNullOrEmpty(configExtension)
+                ? "config"
+                : configFileName.IndexOfAny(Path.GetInvalidPathChars()) >= 0 ||
+                  (configFileName.Length == 1 && configFileName == ".")
+                    ? throw new ArgumentException($"Invalid file name exception: '{configFileName}'",
+                        nameof(configFileName))
+                    : configExtension.StartsWith(".")
+                        ? configExtension.Substring(1)
+                        : configExtension;
+
+            // Set config path
+            FullConfigPath = Path.Combine(BaseAppPath, $"{ConfigFileName}.{ConfigExtension}");
+
             // Initialize config if custom object is null
             ConfigDataType = customConfigObject ?? new TConfigDataType();
 
@@ -112,32 +169,29 @@ namespace G9ConfigManagement.Helper
                 throw new NullReferenceException(
                     $"Config version property '{nameof(ConfigDataType.ConfigVersion)}', can be null!");
 
-            // Set config file name
-            ConfigFileName = configFileName;
-
             // Create or load config data
             // If file exists load
-            if (File.Exists(configFileName))
+            if (File.Exists(FullConfigPath))
             {
                 if (customConfigObject != null && forceUpdateWithObject)
                 {
-                    File.Delete(configFileName);
+                    File.Delete(FullConfigPath);
                     _configXmlDocument = new XmlDocument();
                     CreateXmlConfigByType();
                 }
                 else
                 {
 #if (NETSTANDARD2_1 || NETSTANDARD2_0)
-                    _configXmlDocument.Load(ConfigFileName);
+                    _configXmlDocument.Load(FullConfigPath);
 #else
-                    _configXmlDocument.Load(new FileStream(ConfigFileName, FileMode.Open));
+                    _configXmlDocument.Load(new FileStream(FullConfigPath, FileMode.Open));
 #endif
                     // Check data type is equal with this type
                     if (string.IsNullOrEmpty(_configXmlDocument["Configuration"]?[ConfigDataTypeElement]?.InnerText) ||
                         _configXmlDocument["Configuration"]?[ConfigDataTypeElement]?.InnerText !=
                         CreateMd5(ConfigDataType.GetType().FullName ?? ConfigDataType.GetType().Name))
                         throw new Exception(
-                            $"A file with this name '{configFileName}' exists for another data type. If you need this file for new type of data, please delete it to recreate.");
+                            $"A file with this path and name '{FullConfigPath}' exists for another data type. If you need this file for new type of data, please delete it to recreate.");
 
                     // If config version change
                     // Remake with change value
@@ -146,7 +200,7 @@ namespace G9ConfigManagement.Helper
                         ConfigDataType.ConfigVersion)
                     {
                         LoadConfigByType(false);
-                        File.Delete(configFileName);
+                        File.Delete(FullConfigPath);
                         _configXmlDocument = new XmlDocument();
                         CreateXmlConfigByType();
                     }
@@ -227,9 +281,9 @@ namespace G9ConfigManagement.Helper
 
             // Save config file
 #if (NETSTANDARD2_1 || NETSTANDARD2_0)
-                    _configXmlDocument.Save(ConfigFileName);
+            _configXmlDocument.Save(FullConfigPath);
 #else
-            _configXmlDocument.Save(new FileStream(ConfigFileName, FileMode.Create));
+            _configXmlDocument.Save(new FileStream(FullConfigPath, FileMode.Create));
 #endif
         }
 
@@ -424,7 +478,7 @@ namespace G9ConfigManagement.Helper
                 if (checkRequired && memberPropertyInfo.GetCustomAttributes(typeof(Required)).Any() &&
                     string.IsNullOrEmpty(element[memberPropertyInfo.Name]?.InnerText))
                     throw new Exception(
-                        $"Property {memberPropertyInfo.Name} in config is requirement, but isn't set in the config file. config file name:'{ConfigFileName}'");
+                        $"Property {memberPropertyInfo.Name} in config is requirement, but isn't set in the config file. config file path and name:'{FullConfigPath}'");
                 // Set config value
                 memberPropertyInfo.SetValue(memberObject,
                     CastStringToPropertyType(memberPropertyInfo, element[memberPropertyInfo.Name]?.InnerText));
