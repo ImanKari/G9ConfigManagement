@@ -27,6 +27,8 @@ namespace G9ConfigManagementNUnitTest.Sample
         [G9ConfigHint("Set user name for service")]
         public string UserName { set; get; }
 
+        public TimeSpan TestTimeSpan { set; get; } = TimeSpan.FromSeconds(3);
+
         [G9ConfigHint("Set password for service")]
         public string Password { set; get; }
 

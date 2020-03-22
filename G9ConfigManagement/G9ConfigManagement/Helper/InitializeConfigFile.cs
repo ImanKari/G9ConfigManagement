@@ -556,7 +556,7 @@ namespace G9ConfigManagement.Helper
                 // Parse for enum
                 return propertyInformation.PropertyType.GetTypeInfo().BaseType == typeof(Enum)
                     ? Enum.Parse(propertyInformation.PropertyType, value)
-                    : propertyInformation.PropertyType.GetTypeInfo().BaseType == typeof(TimeSpan)
+                    : propertyInformation.PropertyType.GetTypeInfo().AsType() == typeof(TimeSpan)
                         ? TimeSpan.Parse(value)
                         : Convert.ChangeType(value, propertyInformation.PropertyType);
             }
