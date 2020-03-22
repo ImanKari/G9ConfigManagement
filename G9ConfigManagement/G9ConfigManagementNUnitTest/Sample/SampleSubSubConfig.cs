@@ -16,11 +16,11 @@ namespace G9ConfigManagementNUnitTest.Sample
 
         public bool Active { set; get; }
 
-        [Hint("Set save time in second")]
+        [G9ConfigHint("Set save time in second")]
         public int SaveTime { set; get; }
 
 
-        [Hint("Set start date time")]
+        [G9ConfigHint("Set start date time")]
         public DateTime StartDateTime { set; get; }
 
     }

@@ -23,27 +23,68 @@ namespace G9ConfigManagement.Helper
         /// <summary>
         ///     Specify supported type bye config management
         /// </summary>
+        // ReSharper disable once UnusedMember.Global
         public enum SupportedTypes
         {
+            // ReSharper disable once UnusedMember.Global
             SbyteType,
+
+            // ReSharper disable once UnusedMember.Global
             ShortType,
+
+            // ReSharper disable once UnusedMember.Global
             IntType,
+
+            // ReSharper disable once UnusedMember.Global
             LongType,
+
+            // ReSharper disable once UnusedMember.Global
             ByteType,
+
+            // ReSharper disable once UnusedMember.Global
             UshortType,
+
+            // ReSharper disable once UnusedMember.Global
             UintType,
+
+            // ReSharper disable once UnusedMember.Global
             UlongType,
+
+            // ReSharper disable once UnusedMember.Global
             CharType,
+
+            // ReSharper disable once UnusedMember.Global
             FloatType,
+
+            // ReSharper disable once UnusedMember.Global
             DoubleType,
+
+            // ReSharper disable once UnusedMember.Global
             DecimalType,
+
+            // ReSharper disable once UnusedMember.Global
             BoolType,
+
+            // ReSharper disable once UnusedMember.Global
             EnumType,
+
+            // ReSharper disable once UnusedMember.Global
             StringType,
+
+            // ReSharper disable once UnusedMember.Global
             DateTimeType,
+
+            // ReSharper disable once UnusedMember.Global
             TimeSpanType,
+
+            // ReSharper disable once UnusedMember.Global
             GuidType,
-            IpAddressType
+
+            // ReSharper disable once UnusedMember.Global
+            IpAddressType,
+
+            // ReSharper disable once UnusedMember.Global
+            TimeSpan
         }
 
         #endregion
@@ -99,7 +140,7 @@ namespace G9ConfigManagement.Helper
 
         #endregion
 
-        #region Methods 
+        #region Methods
 
         /// <summary>
         ///     Constructor
@@ -151,7 +192,7 @@ namespace G9ConfigManagement.Helper
             ConfigExtension = string.IsNullOrEmpty(configExtension)
                 ? "config"
                 : configFileName.IndexOfAny(Path.GetInvalidPathChars()) >= 0 ||
-                  (configFileName.Length == 1 && configFileName == ".")
+                  configFileName.Length == 1 && configFileName == "."
                     ? throw new ArgumentException($"Invalid file name exception: '{configFileName}'",
                         nameof(configFileName))
                     : configExtension.StartsWith(".")
@@ -233,19 +274,19 @@ namespace G9ConfigManagement.Helper
 #if (NETSTANDARD2_1 || NETSTANDARD2_0)
             if (objectForParse is PropertyInfo)
                 return (objectForParse as PropertyInfo).PropertyType.GetProperties().Where(s =>
-                        !Attribute.IsDefined(s, typeof(Ignore)) && s.CanRead && s.CanWrite)
+                        !Attribute.IsDefined(s, typeof(G9ConfigIgnore)) && s.CanRead && s.CanWrite)
                     .ToArray();
             return objectForParse.GetType().GetProperties()
-                .Where(s => !Attribute.IsDefined(s, typeof(Ignore)) && s.CanRead && s.CanWrite &&
+                .Where(s => !Attribute.IsDefined(s, typeof(G9ConfigIgnore)) && s.CanRead && s.CanWrite &&
                             s.Name != nameof(ConfigDataType.ConfigVersion))
                 .ToArray();
 #else
-            if (objectForParse is PropertyInfo)
-                return (objectForParse as PropertyInfo).PropertyType.GetRuntimeProperties().Where(s =>
-                        !s.IsDefined(typeof(Ignore)) && s.CanRead && s.CanWrite)
+            if (objectForParse is PropertyInfo info)
+                return info.PropertyType.GetRuntimeProperties().Where(s =>
+                        !s.IsDefined(typeof(G9ConfigIgnore)) && s.CanRead && s.CanWrite)
                     .ToArray();
             return objectForParse.GetType().GetRuntimeProperties()
-                .Where(s => !s.IsDefined(typeof(Ignore)) && s.CanRead && s.CanWrite &&
+                .Where(s => !s.IsDefined(typeof(G9ConfigIgnore)) && s.CanRead && s.CanWrite &&
                             s.Name != nameof(ConfigDataType.ConfigVersion))
                 .ToArray();
 #endif
@@ -305,8 +346,8 @@ namespace G9ConfigManagement.Helper
 
             // Create elements with properties info
             if (propertiesInfo.Any())
-                for (var i = 0; i < propertiesInfo.Length; i++)
-                    WriteElement(rootNode, propertiesInfo[i], propertyObject);
+                foreach (var t in propertiesInfo)
+                    WriteElement(rootNode, t, propertyObject);
             else
                 WriteComment("Property with set and get not found!", rootNode);
         }
@@ -328,7 +369,7 @@ namespace G9ConfigManagement.Helper
             if (memberObject == null) return;
 
             // Add Comment if need
-            WriteHintCommentToXml(rootNode, memberPropertyInfo, memberObject);
+            WriteHintCommentToXml(rootNode, memberPropertyInfo);
 
             // Add notice required if need
             WriteRequiredNoticeToXml(rootNode, memberPropertyInfo);
@@ -362,21 +403,20 @@ namespace G9ConfigManagement.Helper
         /// </summary>
         /// <param name="rootNode">Specify root xml node for write</param>
         /// <param name="memberPropertyInfo">Specify property information for get information</param>
-        /// <param name="memberObject">Object of config for read comment value</param>
 
         #region WriteHintCommentToXml
 
-        private void WriteHintCommentToXml(XmlNode rootNode, PropertyInfo memberPropertyInfo, object memberObject)
+        private void WriteHintCommentToXml(XmlNode rootNode, PropertyInfo memberPropertyInfo)
         {
             #region Hint Comment
 
             // Set hint comment for config
-            var hintAttr = memberPropertyInfo.GetCustomAttributes(typeof(Hint)).ToArray();
+            var hintAttr = memberPropertyInfo.GetCustomAttributes(typeof(G9ConfigHint)).ToArray();
             if (hintAttr.Any())
-                for (var i = 0; i < hintAttr.Length; i++)
+                foreach (var t in hintAttr)
                 {
-                    Hint oHint;
-                    if ((oHint = hintAttr[i] as Hint) == null || string.IsNullOrEmpty(oHint.HintForProperty))
+                    G9ConfigHint oHint;
+                    if ((oHint = t as G9ConfigHint) == null || string.IsNullOrEmpty(oHint.HintForProperty))
                         continue;
                     // Write comment
                     WriteComment(oHint.HintForProperty, rootNode);
@@ -397,7 +437,7 @@ namespace G9ConfigManagement.Helper
 
         private void WriteRequiredNoticeToXml(XmlNode rootNode, PropertyInfo memberPropertyInfo)
         {
-            if (memberPropertyInfo.GetCustomAttributes(typeof(Required)).Any())
+            if (memberPropertyInfo.GetCustomAttributes(typeof(G9ConfigRequired)).Any())
                 // Write comment
                 WriteComment(" ### Notice: This element is required! ### ", rootNode);
         }
@@ -453,8 +493,8 @@ namespace G9ConfigManagement.Helper
             if (propertyObject == null || element == null) return;
 
             // Create elements with properties info
-            for (var i = 0; i < propertiesInfo.Length; i++)
-                ReadElement(propertiesInfo[i], propertyObject, element, checkRequired);
+            foreach (var t in propertiesInfo)
+                ReadElement(t, propertyObject, element, checkRequired);
         }
 
         #endregion
@@ -475,7 +515,7 @@ namespace G9ConfigManagement.Helper
             if (CheckTypeIsSupportedByConfigManagement(memberPropertyInfo.PropertyType))
             {
                 // Check for required config item
-                if (checkRequired && memberPropertyInfo.GetCustomAttributes(typeof(Required)).Any() &&
+                if (checkRequired && memberPropertyInfo.GetCustomAttributes(typeof(G9ConfigRequired)).Any() &&
                     string.IsNullOrEmpty(element[memberPropertyInfo.Name]?.InnerText))
                     throw new Exception(
                         $"Property {memberPropertyInfo.Name} in config is requirement, but isn't set in the config file. config file path and name:'{FullConfigPath}'");
@@ -509,15 +549,16 @@ namespace G9ConfigManagement.Helper
 
         #region CastStringToPropertyType
 
-        private object CastStringToPropertyType(PropertyInfo propertyInformation, string value)
+        private static object CastStringToPropertyType(PropertyInfo propertyInformation, string value)
         {
             try
             {
                 // Parse for enum
-                if (propertyInformation.PropertyType.GetTypeInfo().BaseType == typeof(Enum))
-                    return Enum.Parse(propertyInformation.PropertyType, value);
-                // Parse for other type
-                return Convert.ChangeType(value, propertyInformation.PropertyType);
+                return propertyInformation.PropertyType.GetTypeInfo().BaseType == typeof(Enum)
+                    ? Enum.Parse(propertyInformation.PropertyType, value)
+                    : propertyInformation.PropertyType.GetTypeInfo().BaseType == typeof(TimeSpan)
+                        ? TimeSpan.Parse(value)
+                        : Convert.ChangeType(value, propertyInformation.PropertyType);
             }
             catch (Exception ex)
             {
@@ -529,7 +570,6 @@ namespace G9ConfigManagement.Helper
 
         #endregion
 
-
         /// <summary>
         ///     Generate MD5 from text
         /// </summary>
@@ -538,7 +578,7 @@ namespace G9ConfigManagement.Helper
 
         #region CreateMd5
 
-        private string CreateMd5(string text)
+        private static string CreateMd5(string text)
         {
 #if NETSTANDARD2_1
             using var md5 = MD5.Create();
@@ -564,7 +604,9 @@ namespace G9ConfigManagement.Helper
 
                 // Convert the byte array to hexadecimal string
                 var sb = new StringBuilder();
-                for (var i = 0; i < hashBytes.Length; i++) sb.Append(hashBytes[i].ToString("X2"));
+                foreach (var t in hashBytes)
+                    sb.Append(t.ToString("X2"));
+
                 return sb.ToString().ToLower();
             }
 #endif

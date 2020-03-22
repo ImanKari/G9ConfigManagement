@@ -24,19 +24,19 @@ namespace G9ConfigManagementNUnitTest.Sample
 
         public string ConfigVersion { set; get; }
 
-        [Hint("Set user name for service")]
+        [G9ConfigHint("Set user name for service")]
         public string UserName { set; get; }
 
-        [Hint("Set password for service")]
+        [G9ConfigHint("Set password for service")]
         public string Password { set; get; }
 
-        [Required]
-        [Hint("Set type of user")]
-        [Hint("Values: " + nameof(UserType.Admin) + " - " + nameof(UserType.Editor))]
-        [Hint("Default values " + nameof(UserType.Admin))]
+        [G9ConfigRequired]
+        [G9ConfigHint("Set type of user")]
+        [G9ConfigHint("Values: " + nameof(UserType.Admin) + " - " + nameof(UserType.Editor))]
+        [G9ConfigHint("Default values " + nameof(UserType.Admin))]
         public UserType TypeOfUser { set; get; }
 
-        [Hint("Set sub class")]
+        [G9ConfigHint("Set sub class")]
         public SampleSubConfig SubConfig { set; get; }
     }
 }

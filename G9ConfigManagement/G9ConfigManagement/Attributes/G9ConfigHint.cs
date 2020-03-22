@@ -6,13 +6,13 @@ namespace G9ConfigManagement.Attributes
     ///     This attribute used for added hint comment for config item
     /// </summary>
     [AttributeUsage(AttributeTargets.Property, AllowMultiple = true)]
-    public class Hint : Attribute
+    public class G9ConfigHint : Attribute
     {
         /// <summary>
         ///     Constructor
         /// </summary>
         /// <param name="customHint">Custom hint (comment for xml config item)</param>
-        public Hint(string customHint)
+        public G9ConfigHint(string customHint)
         {
             HintForProperty = customHint;
         }

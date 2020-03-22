@@ -7,7 +7,7 @@ namespace G9ConfigManagement.Attributes
     ///     Required just when read from xml config
     /// </summary>
     [AttributeUsage(AttributeTargets.Property)]
-    public class Required : Attribute
+    public class G9ConfigRequired : Attribute
     {
     }
 }

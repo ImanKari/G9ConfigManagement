@@ -11,7 +11,7 @@ namespace G9ConfigManagementNUnitTest
 
         public const string ConfigExtension = "setting";
 
-        public G9ConfigManagement_Singleton<SampleConfig> Configuration;
+        public G9ConfigManagementSingleton<SampleConfig> Configuration;
 
         [SetUp]
         public void Setup()
@@ -23,7 +23,7 @@ namespace G9ConfigManagementNUnitTest
         public void InitializeConfigWithoutSetName()
         {
             // Initialize config file
-            Configuration = G9ConfigManagement_Singleton<SampleConfig>.GetInstance();
+            Configuration = G9ConfigManagementSingleton<SampleConfig>.GetInstance();
 
             // Initialize config
             var sampleConfig = new SampleConfig();
@@ -41,7 +41,7 @@ namespace G9ConfigManagementNUnitTest
         {
             // Initialize config file
             Configuration =
-                G9ConfigManagement_Singleton<SampleConfig>.GetInstance(ConfigFileName,
+                G9ConfigManagementSingleton<SampleConfig>.GetInstance(ConfigFileName,
                     configExtension: ConfigExtension);
 
             // Initialize config
@@ -60,10 +60,10 @@ namespace G9ConfigManagementNUnitTest
         {
             // Initialize config file
             Configuration =
-                G9ConfigManagement_Singleton<SampleConfig>.GetInstance(ConfigFileName,
+                G9ConfigManagementSingleton<SampleConfig>.GetInstance(ConfigFileName,
                     configExtension: ConfigExtension);
             // Initialize config file
-            var config2 = G9ConfigManagement_Singleton<SampleConfig>.GetInstance();
+            var config2 = G9ConfigManagementSingleton<SampleConfig>.GetInstance();
 
             // Check config file name
             Assert.AreEqual(Configuration.ConfigFileName, ConfigFileName);
