@@ -2,20 +2,25 @@
 
   <PropertyGroup>
     <TargetFrameworks>netstandard1.3;netstandard1.4;netstandard1.5;netstandard1.6;netstandard2.0;netstandard2.1</TargetFrameworks>
-    <Version>2.1.0.1</Version>
+    <Version>2.1.0.2</Version>
     <Authors>Iman Kari</Authors>
     <Company>G9Studio</Company>
     <Description>Config Management</Description>
-    <Copyright>G9Studio - 2019</Copyright>
+    <Copyright>G9Studio - 2021</Copyright>
     <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
     <PackageProjectUrl>http://www.G9TM.com/</PackageProjectUrl>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <AssemblyVersion>2.1.0.1</AssemblyVersion>
-    <FileVersion>2.1.0.1</FileVersion>
+    <AssemblyVersion>2.1.0.2</AssemblyVersion>
+    <FileVersion>2.1.0.2</FileVersion>
+    <PackageIcon>G9-Icon.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="G9-Icon.png">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
     <None Include="LICENSE.md">
       <Pack>True</Pack>
       <PackagePath></PackagePath>
