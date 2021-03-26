@@ -15,18 +15,11 @@ variables:
   buildConfiguration: 'Release'
 
 steps:
+# - task: NuGetToolInstaller@1
 
-- task: UseDotNet@2
-  displayName: 'Install .Net 5 SDK'
-  inputs:
-    packageType: 'sdk'
-    version: '5.0.100'
-    
-- task: NuGetToolInstaller@1
-
-- task: NuGetCommand@2
-  inputs:
-    restoreSolution: '$(solution)'
+# - task: NuGetCommand@2
+#   inputs:
+#     restoreSolution: '$(solution)'
 
 - task: VSBuild@1
   inputs:
@@ -35,10 +28,10 @@ steps:
     platform: '$(buildPlatform)'
     configuration: '$(buildConfiguration)'
 
-- task: VSTest@2
-  inputs:
-    platform: '$(buildPlatform)'
-    configuration: '$(buildConfiguration)'
+# - task: VSTest@2
+#   inputs:
+#     platform: '$(buildPlatform)'
+#     configuration: '$(buildConfiguration)'
 
 - task: DotNetCoreCLI@2
   displayName: "Publish nuget packages to public feed"
@@ -46,6 +39,6 @@ steps:
     command: custom
     custom: nuget
     arguments: >
-      push $(System.DefaultWorkingDirectory)/**/*.nupkg;!$(System.DefaultWorkingDirectory)/**/*.symbols.nupkg
+      push $(Pipeline.Workspace)/**/drop/*.nupkg
       -s https://api.nuget.org/v3/index.json
       -k $(NuGetApiKey) 
