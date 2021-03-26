@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFrameworks>netstandard1.3;netstandard1.4;netstandard1.5;netstandard1.6;netstandard2.0;netstandard2.1</TargetFrameworks>
-    <Version>2.1.0.2</Version>
+    <Version>2.1.0.3</Version>
     <Authors>Iman Kari</Authors>
     <Company>G9Studio</Company>
     <Description>Config Management</Description>
@@ -11,9 +11,15 @@
     <PackageProjectUrl>http://www.G9TM.com/</PackageProjectUrl>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <AssemblyVersion>2.1.0.2</AssemblyVersion>
-    <FileVersion>2.1.0.2</FileVersion>
+    <AssemblyVersion>2.1.0.3</AssemblyVersion>
+    <FileVersion>2.1.0.3</FileVersion>
     <PackageIcon>G9-Icon.png</PackageIcon>
+    <Product>G9 Config Management</Product>
+    <RepositoryUrl>https://github.com/ImanKari/G9ConfigManagement</RepositoryUrl>
+    <RepositoryType>GitHub</RepositoryType>
+    <PackageTags>Config Configuration Management ConfigManagement</PackageTags>
+    <PackageReleaseNotes>-- Fixed Version 2.1.0.3</PackageReleaseNotes>
+    <NeutralLanguage>en</NeutralLanguage>
   </PropertyGroup>
 
   <ItemGroup>
