@@ -15,14 +15,14 @@ variables:
   buildConfiguration: 'Release'
 
 steps:
-- task: NuGetToolInstaller@1
 
 - task: UseDotNet@2
-  displayName: 'Use .NET Core sdk'
+  displayName: 'Install .Net 5 SDK'
   inputs:
-    packageType: sdk
-    version: 5
-    installationPath: $(Agent.ToolsDirectory)/dotnet
+    packageType: 'sdk'
+    version: '5.0.100'
+    
+- task: NuGetToolInstaller@1
 
 - task: NuGetCommand@2
   inputs:
