@@ -39,6 +39,6 @@ steps:
     command: custom
     custom: nuget
     arguments: >
-      push $(Pipeline.Workspace)/**/drop/*.nupkg
+      push $(Pipeline.Workspace)/**/G9ConfigManagement/G9ConfigManagement/bin/Release/*.nupkg
       -s https://api.nuget.org/v3/index.json
       -k $(NuGetApiKey) 
