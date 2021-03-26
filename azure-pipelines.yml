@@ -34,7 +34,7 @@ steps:
     configuration: '$(buildConfiguration)'
 
 - task: DotNetCoreCLI@2
-  displayName: "Publish nuget packages to public feed"
+  displayName: "Publish nuget packages to nuget.org"
   inputs:
     command: custom
     custom: nuget
@@ -45,6 +45,7 @@ steps:
       --skip-duplicate
 
 - task: PowerShell@2
+  displayName: "Sync Azure Devops repo with GitHub repo"
   inputs:
     targetType: 'inline'
     script: |
