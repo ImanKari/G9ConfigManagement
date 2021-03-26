@@ -38,4 +38,7 @@ steps:
   inputs:
     command: 'push'
     custom: nuget
-    arguments: 'push $(System.DefaultWorkingDirectory)/**/*.nupkg;!$(System.DefaultWorkingDirectory)/**/*.symbols.nupkg -s https://api.nuget.org/v3/index.json -k $(NuGetApiKey)'
+    arguments: >
+      push $(Agent.BuildDirectory)/$(ArtifactNugetName)/*.nupkg
+      -s https://api.nuget.org/v3/index.json
+      -k $(NuGetApiKey) 
