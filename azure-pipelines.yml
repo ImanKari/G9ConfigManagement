@@ -37,6 +37,5 @@ steps:
   displayName: "Publish nuget packages to public feed"
   inputs:
     command: 'push'
-    packagesToPush: '$(System.DefaultWorkingDirectory)/**/*.nupkg;!$(System.DefaultWorkingDirectory)/**/*.symbols.nupkg'
-    nuGetFeedType: 'external'
-    publishFeedCredentials: 'NugetPackage'
+    custom: nuget
+    arguments: 'push $(System.DefaultWorkingDirectory)/**/*.nupkg;!$(System.DefaultWorkingDirectory)/**/*.symbols.nupkg -s https://api.nuget.org/v3/index.json -k $(NuGetApiKey)'
