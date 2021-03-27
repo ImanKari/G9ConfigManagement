@@ -29,7 +29,7 @@ namespace G9ConfigManagementNUnitTest
             var sampleConfig = new SampleConfig();
 
             // Check config file name
-            Assert.AreEqual(Configuration.ConfigFileName, typeof(SampleConfig).Name);
+            Assert.AreEqual(Configuration.ConfigFileName, nameof(SampleConfig));
 
             // Check version
             Assert.AreEqual(Configuration.Configuration.ConfigVersion, sampleConfig.ConfigVersion);
@@ -62,13 +62,14 @@ namespace G9ConfigManagementNUnitTest
             Configuration =
                 G9ConfigManagementSingleton<SampleConfig>.GetInstance(ConfigFileName,
                     configExtension: ConfigExtension);
+
             // Initialize config file
             var config2 = G9ConfigManagementSingleton<SampleConfig>.GetInstance();
 
             // Check config file name
             Assert.AreEqual(Configuration.ConfigFileName, ConfigFileName);
             // Check config file name
-            Assert.AreEqual(config2.ConfigFileName, typeof(SampleConfig).Name);
+            Assert.AreEqual(config2.ConfigFileName, nameof(SampleConfig));
 
             // Initialize config
             var sampleConfig = new SampleConfig();
@@ -94,6 +95,34 @@ namespace G9ConfigManagementNUnitTest
                     }
                 }
             });
+        }
+
+        [Test]
+        [Order(5)]
+        public void AddCustomConfig()
+        {
+            // Initialize config file
+            Configuration =
+                G9ConfigManagementSingleton<SampleConfig>.GetInstance(ConfigFileName, new SampleConfig()
+                {
+                    UserName = "TEST"
+                }, false, null, "ini");
+
+            Assert.AreEqual(Configuration.Configuration.UserName, "TEST");
+        }
+
+        [Test]
+        [Order(6)]
+        public void RestoreCustomConfig()
+        {
+            // Initialize config file
+            Configuration =
+                G9ConfigManagementSingleton<SampleConfig>.GetInstance(ConfigFileName, new SampleConfig()
+                {
+                    UserName = "TEST"
+                }, false, null, "ini");
+
+            Assert.AreEqual(Configuration.Configuration.UserName, "TEST");
         }
     }
 }

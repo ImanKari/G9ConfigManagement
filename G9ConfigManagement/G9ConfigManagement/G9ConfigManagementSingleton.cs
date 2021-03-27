@@ -34,10 +34,15 @@ namespace G9ConfigManagement
         public string ConfigFileName { get; }
 
         /// <summary>
+        ///     Specify config extension
+        /// </summary>
+        public string ConfigExtension { get; }
+
+        /// <summary>
         ///     Access to config data value
         /// </summary>
         // ReSharper disable once UnusedMember.Global
-        public TConfigDataType Configuration => ConfigsInformation[ConfigFileName].ConfigDataType;
+        public TConfigDataType Configuration => ConfigsInformation[ConfigFileName + ConfigExtension].ConfigDataType;
 
         #endregion
 
@@ -72,10 +77,12 @@ namespace G9ConfigManagement
         {
             try
             {
-                // Set config file name 
+                // Set config file name and extension
                 ConfigFileName = configFileName;
+                ConfigExtension = configExtension;
+
                 // Initialize config files
-                ConfigsInformation.Add(ConfigFileName,
+                ConfigsInformation.Add(ConfigFileName + configExtension,
                     new InitializeConfigFile<TConfigDataType>(configFileName, customConfigObject, forceRemake, baseApp,
                         configExtension));
             }
@@ -118,18 +125,21 @@ namespace G9ConfigManagement
             TConfigDataType customConfigObject = null, bool forceRemake = false, string baseApp = null,
             string configExtension = "config")
         {
+            // Set index label
+            var indexLabel = configFileName + configExtension;
+
             // Set config file name if it's null
             if (string.IsNullOrEmpty(configFileName))
                 configFileName = typeof(TConfigDataType).Name;
 
             // Check and instance new config if need
-            if (!ConfigsManagement.ContainsKey(configFileName))
-                ConfigsManagement.Add(configFileName,
+            if (!ConfigsManagement.ContainsKey(indexLabel))
+                ConfigsManagement.Add(indexLabel,
                     new G9ConfigManagementSingleton<TConfigDataType>(configFileName, customConfigObject, forceRemake,
                         baseApp, configExtension));
 
             // return config
-            return ConfigsManagement[configFileName];
+            return ConfigsManagement[indexLabel];
         }
 
         #endregion
@@ -145,10 +155,11 @@ namespace G9ConfigManagement
         // ReSharper disable once UnusedMember.Global
         public void ForceUpdate(TConfigDataType newConfigForUpdate)
         {
-            ConfigsInformation[ConfigFileName] =
+            var indexLabel = ConfigFileName + ConfigExtension;
+            ConfigsInformation[indexLabel] =
                 new InitializeConfigFile<TConfigDataType>(ConfigFileName, newConfigForUpdate, true,
-                    ConfigsInformation[ConfigFileName].BaseAppPath,
-                    ConfigsInformation[ConfigFileName].ConfigExtension);
+                    ConfigsInformation[indexLabel].BaseAppPath,
+                    ConfigsInformation[indexLabel].ConfigExtension);
         }
 
         #endregion
