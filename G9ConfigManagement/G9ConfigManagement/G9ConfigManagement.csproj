@@ -2,23 +2,24 @@
 
   <PropertyGroup>
     <TargetFrameworks>netstandard1.3;netstandard1.4;netstandard1.5;netstandard1.6;netstandard2.0;netstandard2.1</TargetFrameworks>
-    <Version>2.1.0.5</Version>
+    <Version>2.1.0.6</Version>
     <Authors>Iman Kari</Authors>
     <Company>G9Studio</Company>
     <Description>Config Management</Description>
     <Copyright>G9Studio - 2021</Copyright>
     <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
-    <PackageProjectUrl>http://www.G9TM.com/</PackageProjectUrl>
+    <PackageProjectUrl>http://www.G9TM.com</PackageProjectUrl>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <AssemblyVersion>2.1.0.5</AssemblyVersion>
-    <FileVersion>2.1.0.5</FileVersion>
+    <AssemblyVersion>2.1.0.6</AssemblyVersion>
+    <FileVersion>2.1.0.6</FileVersion>
     <PackageIcon>G9-Icon.png</PackageIcon>
     <Product>G9 Config Management</Product>
     <RepositoryUrl>https://github.com/ImanKari/G9ConfigManagement</RepositoryUrl>
     <RepositoryType>GitHub</RepositoryType>
     <PackageTags>Config Configuration Management ConfigManagement</PackageTags>
-    <PackageReleaseNotes>-- Fixed config name and type file</PackageReleaseNotes>
+    <PackageReleaseNotes>-- Update package icon
+-- Modify license</PackageReleaseNotes>
     <NeutralLanguage>en</NeutralLanguage>
   </PropertyGroup>
 
