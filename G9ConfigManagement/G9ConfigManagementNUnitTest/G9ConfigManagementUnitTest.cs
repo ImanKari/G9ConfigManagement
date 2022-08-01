@@ -1,10 +1,36 @@
 using System;
+using System.Collections.Generic;
 using G9ConfigManagement;
+using G9ConfigManagement.JSON;
 using G9ConfigManagementNUnitTest.Sample;
 using NUnit.Framework;
 
 namespace G9ConfigManagementNUnitTest
 {
+
+    public class Test
+    {
+        public string FirstName { set; get; } = "Iman";
+        public string LastName { set; get; } = "Kari";
+        public TimeSpan Time { set; get; } = TimeSpan.MaxValue;
+        public DateTime DateTime { set; get; } = DateTime.MaxValue;
+        public int Age { set; get; } = 32;
+        public List<string> Names { set; get; } = new List<string>() { "A1", "B2", "C3" };
+    }
+
+    public class Test2
+    {
+        public string FirstName { set; get; } = "Iman";
+        public string LastName { set; get; } = "Kari";
+        public TimeSpan Time { set; get; } = TimeSpan.MaxValue;
+        public DateTime DateTime { set; get; } = DateTime.MaxValue;
+
+        public Test InnerObject { set; get; } = new Test();
+    }
+
+    /// <summary>
+    /// Test Class
+    /// </summary>
     public class G9ConfigManagementUnitTest
     {
         public const string ConfigFileName = "Configuration";
@@ -13,9 +39,15 @@ namespace G9ConfigManagementNUnitTest
 
         public G9ConfigManagementSingleton<SampleConfig> Configuration;
 
+        
+
         [SetUp]
         public void Setup()
         {
+            var x = TimeSpan.MaxValue.ToString();
+            var oClass = new Test2();
+            var data = JSONWriter.ToJson(oClass);
+            var oObject = JSONParser.FromJson<Test>(data);
         }
 
         [Test]

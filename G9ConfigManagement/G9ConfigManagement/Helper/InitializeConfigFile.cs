@@ -162,9 +162,6 @@ namespace G9ConfigManagement.Helper
         ///     <para>Specified config extension</para>
         ///     <para>Notice: if not set argument => use default extension '.config'</para>
         /// </param>
-
-        #region InitializeConfigFile
-
         public InitializeConfigFile(string configFileName, TConfigDataType customConfigObject = null,
             bool forceUpdateWithObject = false, string baseApp = null, string configExtension = "config")
         {
@@ -172,7 +169,7 @@ namespace G9ConfigManagement.Helper
             BaseAppPath =
                 string.IsNullOrEmpty(baseApp)
                     ?
-#if (NETSTANDARD2_1 || NETSTANDARD2_0)
+#if (NETSTANDARD2_1 || NETSTANDARD2_0 || NET35 || NET40 || NET45)
                     AppDomain.CurrentDomain.BaseDirectory
 #else
                     AppContext.BaseDirectory
@@ -192,7 +189,7 @@ namespace G9ConfigManagement.Helper
             ConfigExtension = string.IsNullOrEmpty(configExtension)
                 ? "config"
                 : configFileName.IndexOfAny(Path.GetInvalidPathChars()) >= 0 ||
-                  configFileName.Length == 1 && configFileName == "."
+                  (configFileName.Length == 1 && configFileName == ".")
                     ? throw new ArgumentException($"Invalid file name exception: '{configFileName}'",
                         nameof(configFileName))
                     : configExtension.StartsWith(".")
@@ -259,19 +256,14 @@ namespace G9ConfigManagement.Helper
             }
         }
 
-        #endregion
-
         /// <summary>
         ///     Get properties info from custom object
         /// </summary>
         /// <param name="objectForParse">Specify object for get property info</param>
         /// <returns></returns>
-
-        #region GetPropertiesInfosFromObject
-
         private PropertyInfo[] GetPropertiesInfosFromObject(object objectForParse)
         {
-#if (NETSTANDARD2_1 || NETSTANDARD2_0)
+#if (NETSTANDARD2_1 || NETSTANDARD2_0 || NET35 || NET40 || NET45)
             if (objectForParse is PropertyInfo)
                 return (objectForParse as PropertyInfo).PropertyType.GetProperties().Where(s =>
                         !Attribute.IsDefined(s, typeof(G9ConfigIgnore)) && s.CanRead && s.CanWrite)
@@ -292,14 +284,9 @@ namespace G9ConfigManagement.Helper
 #endif
         }
 
-        #endregion
-
         /// <summary>
         ///     Create xml config file by data type
         /// </summary>
-
-        #region CreateXmlConfigByType
-
         private void CreateXmlConfigByType()
         {
             // Set header
@@ -328,17 +315,12 @@ namespace G9ConfigManagement.Helper
 #endif
         }
 
-        #endregion
-
         /// <summary>
         ///     Read xml and set object from xml
         /// </summary>
         /// <param name="rootNode">Specify root xml node for write</param>
         /// <param name="propertiesInfo">Specify all property infos from config object</param>
         /// <param name="propertyObject">Config object for get values</param>
-
-        #region WriteXmlByPropertiesInfo
-
         private void WriteXmlByPropertiesInfo(XmlNode rootNode, PropertyInfo[] propertiesInfo, object propertyObject)
         {
             // Return if object is null
@@ -352,17 +334,12 @@ namespace G9ConfigManagement.Helper
                 WriteComment("Property with set and get not found!", rootNode);
         }
 
-        #endregion
-
         /// <summary>
         ///     Write element tag and data to xml
         /// </summary>
         /// <param name="rootNode">Specify root xml node for write</param>
         /// <param name="memberPropertyInfo">Specify property information for get information</param>
         /// <param name="memberObject">Object of config for read comment value</param>
-
-        #region WriteElement
-
         private void WriteElement(XmlNode rootNode, PropertyInfo memberPropertyInfo, object memberObject)
         {
             // Return if object is null
@@ -376,7 +353,13 @@ namespace G9ConfigManagement.Helper
             if (CheckTypeIsSupportedByConfigManagement(memberPropertyInfo.PropertyType))
             {
                 XmlNode node = _configXmlDocument.CreateElement(memberPropertyInfo.Name);
+#if (NET35 || NET40)
+                var data = memberPropertyInfo.GetValue(memberObject, new object[0]);
+                node.InnerText = data != null ? data.ToString() : string.Empty;
+#else
                 node.InnerText = memberPropertyInfo.GetValue(memberObject)?.ToString() ?? string.Empty;
+#endif
+
                 rootNode.AppendChild(node);
             }
             else
@@ -387,31 +370,33 @@ namespace G9ConfigManagement.Helper
                     newNode,
                     GetPropertiesInfosFromObject(memberPropertyInfo),
                     memberObject.GetType()
-#if (NETSTANDARD2_1 || NETSTANDARD2_0)
+#if (NETSTANDARD2_1 || NETSTANDARD2_0 || NET35 || NET40 || NET45)
                         .GetProperty(memberPropertyInfo.Name)
 #else
                         .GetRuntimeProperty(memberPropertyInfo.Name)
 #endif
+#if (NET35 || NET40)
+                        ?.GetValue(memberObject, new object[0]));
+#else
                         ?.GetValue(memberObject));
+#endif
             }
         }
-
-        #endregion
 
         /// <summary>
         ///     Check property and write comment element to xml if has hint attribute
         /// </summary>
         /// <param name="rootNode">Specify root xml node for write</param>
         /// <param name="memberPropertyInfo">Specify property information for get information</param>
-
-        #region WriteHintCommentToXml
-
         private void WriteHintCommentToXml(XmlNode rootNode, PropertyInfo memberPropertyInfo)
         {
-            #region Hint Comment
-
             // Set hint comment for config
+#if (NET35 || NET40)
+            var hintAttr = memberPropertyInfo.GetCustomAttributes(typeof(G9ConfigHint), false).ToArray();
+#else
             var hintAttr = memberPropertyInfo.GetCustomAttributes(typeof(G9ConfigHint)).ToArray();
+#endif
+
             if (hintAttr.Any())
                 foreach (var t in hintAttr)
                 {
@@ -421,60 +406,46 @@ namespace G9ConfigManagement.Helper
                     // Write comment
                     WriteComment(oHint.HintForProperty, rootNode);
                 }
-
-            #endregion
         }
-
-        #endregion
 
         /// <summary>
         ///     Check property and write required notice element to xml if has hint attribute
         /// </summary>
         /// <param name="rootNode">Specify root xml node for write</param>
         /// <param name="memberPropertyInfo">Specify property information for get information</param>
-
-        #region WriteRequiredNoticeToXml
-
         private void WriteRequiredNoticeToXml(XmlNode rootNode, PropertyInfo memberPropertyInfo)
         {
+#if (NET35 || NET40)
+            if (memberPropertyInfo.GetCustomAttributes(typeof(G9ConfigRequired), false).Any())
+#else
             if (memberPropertyInfo.GetCustomAttributes(typeof(G9ConfigRequired)).Any())
+#endif
                 // Write comment
                 WriteComment(" ### Notice: This element is required! ### ", rootNode);
         }
 
-        #endregion
 
         /// <summary>
         ///     Write comment to xml
         /// </summary>
         /// <param name="comment">Custom comment message</param>
         /// <param name="rootNode">Specify root xml node for write</param>
-
-        #region WriteComment
-
         private void WriteComment(string comment, XmlNode rootNode)
         {
             var hintComment = _configXmlDocument.CreateComment(comment);
             rootNode.AppendChild(hintComment);
         }
 
-        #endregion
-
         /// <summary>
         ///     Set config object by xml data
         /// </summary>
         /// <param name="checkRequired">Check required item</param>
-
-        #region LoadConfigByType
-
         private void LoadConfigByType(bool checkRequired)
         {
             ReadXmlByPropertiesInfo(
                 GetPropertiesInfosFromObject(ConfigDataType),
                 ConfigDataType, _configXmlDocument["Configuration"], checkRequired);
         }
-
-        #endregion
 
         /// <summary>
         ///     Read xml and set object from xml
@@ -483,9 +454,6 @@ namespace G9ConfigManagement.Helper
         /// <param name="propertyObject">Config object</param>
         /// <param name="element">Element for read</param>
         /// <param name="checkRequired">Check required item</param>
-
-        #region ReadXmlByPropertiesInfo
-
         private void ReadXmlByPropertiesInfo(PropertyInfo[] propertiesInfo, object propertyObject, XmlElement element,
             bool checkRequired)
         {
@@ -497,8 +465,6 @@ namespace G9ConfigManagement.Helper
                 ReadElement(t, propertyObject, element, checkRequired);
         }
 
-        #endregion
-
         /// <summary>
         ///     Read element from xml and set object
         /// </summary>
@@ -506,39 +472,50 @@ namespace G9ConfigManagement.Helper
         /// <param name="memberObject">Object of config for set values from xml</param>
         /// <param name="element">Specify element for read</param>
         /// <param name="checkRequired">Check required item</param>
-
-        #region ReadElement
-
         private void ReadElement(PropertyInfo memberPropertyInfo, object memberObject, XmlElement element,
             bool checkRequired)
         {
             if (CheckTypeIsSupportedByConfigManagement(memberPropertyInfo.PropertyType))
             {
                 // Check for required config item
-                if (checkRequired && memberPropertyInfo.GetCustomAttributes(typeof(G9ConfigRequired)).Any() &&
+                if (checkRequired &&
+#if (NET35 || NET40)
+                    memberPropertyInfo.GetCustomAttributes(typeof(G9ConfigRequired), false)
+#else
+                    memberPropertyInfo.GetCustomAttributes(typeof(G9ConfigRequired))
+#endif
+                        .Any() &&
                     string.IsNullOrEmpty(element[memberPropertyInfo.Name]?.InnerText))
                     throw new Exception(
                         $"Property {memberPropertyInfo.Name} in config is requirement, but isn't set in the config file. config file path and name:'{FullConfigPath}'");
                 // Set config value
+#if (NET35 || NET40)
+                memberPropertyInfo.SetValue(memberObject,
+                    CastStringToPropertyType(memberPropertyInfo, element[memberPropertyInfo.Name]?.InnerText),
+                    new object[0]);
+#else
                 memberPropertyInfo.SetValue(memberObject,
                     CastStringToPropertyType(memberPropertyInfo, element[memberPropertyInfo.Name]?.InnerText));
+#endif
             }
             else
             {
                 ReadXmlByPropertiesInfo(
                     GetPropertiesInfosFromObject(memberPropertyInfo),
                     memberObject.GetType()
-#if (NETSTANDARD2_1 || NETSTANDARD2_0)
+#if (NETSTANDARD2_1 || NETSTANDARD2_0 || NET35 || NET40)
                         .GetProperty(memberPropertyInfo.Name)
 #else
                         .GetRuntimeProperty(memberPropertyInfo.Name)
 #endif
+#if (NET35 || NET40)
+                        ?.GetValue(memberObject, new object[0]),
+#else
                         ?.GetValue(memberObject),
+#endif
                     element[memberPropertyInfo.Name], checkRequired);
             }
         }
-
-        #endregion
 
         /// <summary>
         ///     Cast string value to property type
@@ -546,19 +523,24 @@ namespace G9ConfigManagement.Helper
         /// <param name="propertyInformation">Specify property information for cast</param>
         /// <param name="value">String value for cast to property type</param>
         /// <returns></returns>
-
-        #region CastStringToPropertyType
-
         private static object CastStringToPropertyType(PropertyInfo propertyInformation, string value)
         {
             try
             {
                 // Parse for enum
+#if (NET35 || NET40)
+                return propertyInformation.PropertyType?.GetType().BaseType == typeof(Enum)
+                    ? Enum.Parse(propertyInformation.PropertyType, value)
+                    : propertyInformation.PropertyType?.GetType().BaseType == typeof(TimeSpan)
+                        ? TimeSpan.Parse(value)
+                        : Convert.ChangeType(value, propertyInformation.PropertyType);
+#else
                 return propertyInformation.PropertyType.GetTypeInfo().BaseType == typeof(Enum)
                     ? Enum.Parse(propertyInformation.PropertyType, value)
                     : propertyInformation.PropertyType.GetTypeInfo().AsType() == typeof(TimeSpan)
                         ? TimeSpan.Parse(value)
                         : Convert.ChangeType(value, propertyInformation.PropertyType);
+#endif
             }
             catch (Exception ex)
             {
@@ -568,16 +550,11 @@ namespace G9ConfigManagement.Helper
             }
         }
 
-        #endregion
-
         /// <summary>
         ///     Generate MD5 from text
         /// </summary>
         /// <param name="text">Specify text</param>
         /// <returns>Return MD5 from text</returns>
-
-        #region CreateMd5
-
         private static string CreateMd5(string text)
         {
 #if NETSTANDARD2_1
@@ -612,15 +589,10 @@ namespace G9ConfigManagement.Helper
 #endif
         }
 
-        #endregion
-
         /// <summary>
         ///     Add config version element with comment to xml
         /// </summary>
         /// <param name="rootNode">specify node for write</param>
-
-        #region AddConfigVersionToXml
-
         private void AddConfigVersionToXml(XmlNode rootNode)
         {
             // Write comment
@@ -630,15 +602,10 @@ namespace G9ConfigManagement.Helper
             rootNode.AppendChild(node);
         }
 
-        #endregion
-
         /// <summary>
         ///     Generate and add data type element with comment to xml
         /// </summary>
         /// <param name="rootNode">specify node for write</param>
-
-        #region AddConfigDataTypeToXml
-
         private void AddConfigDataTypeToXml(XmlNode rootNode)
         {
             var hintComment =
@@ -650,23 +617,16 @@ namespace G9ConfigManagement.Helper
             rootNode.AppendChild(node);
         }
 
-        #endregion
-
         /// <summary>
         ///     Check type is supported by config management
         /// </summary>
         /// <param name="typeForCheck"></param>
         /// <returns></returns>
-
-        #region CheckTypeIsSupportedByeConfigManagement
-
         private bool CheckTypeIsSupportedByConfigManagement(Type typeForCheck)
         {
             // check with supported array type
             return _typesSupportedByConfig.Any(s => s == typeForCheck);
         }
-
-        #endregion
 
         #endregion
     }
