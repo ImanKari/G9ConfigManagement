@@ -24,12 +24,15 @@ steps:
 - task: VSBuild@1
   inputs:
     solution: '$(solution)'
-    msbuildArgs: '/p:DeployOnBuild=true /p:WebPublishMethod=Package /p:PackageAsSingleFile=true /p:SkipInvalidConfigurations=true /p:PackageLocation="$(build.artifactStagingDirectory)"'
+    msbuildArgs: '/p:DeployOnBuild=true /p:WebPublishMethod=Package /p:ContinuousIntegrationBuild=true /p:PackageAsSingleFile=true /p:SkipInvalidConfigurations=true /p:PackageLocation="$(build.artifactStagingDirectory)"'
     platform: '$(buildPlatform)'
     configuration: '$(buildConfiguration)'
 
 - task: VSTest@2
   inputs:
+    testSelector: testAssemblies
+    testAssemblyVer2: 'G9ConfigManagementNUnitTest\bin\Release\$(BuildConfiguration)\G9ConfigManagementNUnitTest.dll'
+    testFiltercriteria: FullyQualifiedName~G9ConfigManagementNUnitTest
     platform: '$(buildPlatform)'
     configuration: '$(buildConfiguration)'
 
