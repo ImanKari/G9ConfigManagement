@@ -17,7 +17,6 @@ namespace G9ConfigManagementSample
             {
                 Console.WriteLine($"Old Value: {oldValue} | New Value: {newValue}");
             };
-            config.CustomBindableMember.SetNewValue();
             Console.ReadLine();
         }
     }
