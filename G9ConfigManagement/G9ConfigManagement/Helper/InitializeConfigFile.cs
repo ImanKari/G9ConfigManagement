@@ -1,13 +1,17 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
-using System.Net;
-using System.Reflection;
-using System.Security.Cryptography;
 using System.Text;
-using System.Xml;
-using G9ConfigManagement.Attributes;
-using G9ConfigManagement.Interface;
+using System.Threading;
+using G9AssemblyManagement;
+using G9AssemblyManagement.DataType;
+using G9AssemblyManagement.Enums;
+using G9AssemblyManagement.Interfaces;
+using G9ConfigManagement.Abstract;
+using G9ConfigManagement.DataType;
+using G9JSONHandler;
+using G9JSONHandler.DataType;
+using G9JSONHandler.Enum;
 
 namespace G9ConfigManagement.Helper
 {
@@ -15,128 +19,53 @@ namespace G9ConfigManagement.Helper
     ///     Class management config file
     /// </summary>
     /// <typeparam name="TConfigDataType">Type of config object</typeparam>
-    internal class InitializeConfigFile<TConfigDataType>
-        where TConfigDataType : class, IConfigDataType, new()
+    internal class InitializeConfigFile<TConfigDataType> : IDisposable
+        where TConfigDataType : G9AConfigStructure<TConfigDataType>, new()
     {
-        #region Enums
-
-        /// <summary>
-        ///     Specify supported type bye config management
-        /// </summary>
-        // ReSharper disable once UnusedMember.Global
-        public enum SupportedTypes
-        {
-            // ReSharper disable once UnusedMember.Global
-            SbyteType,
-
-            // ReSharper disable once UnusedMember.Global
-            ShortType,
-
-            // ReSharper disable once UnusedMember.Global
-            IntType,
-
-            // ReSharper disable once UnusedMember.Global
-            LongType,
-
-            // ReSharper disable once UnusedMember.Global
-            ByteType,
-
-            // ReSharper disable once UnusedMember.Global
-            UshortType,
-
-            // ReSharper disable once UnusedMember.Global
-            UintType,
-
-            // ReSharper disable once UnusedMember.Global
-            UlongType,
-
-            // ReSharper disable once UnusedMember.Global
-            CharType,
-
-            // ReSharper disable once UnusedMember.Global
-            FloatType,
-
-            // ReSharper disable once UnusedMember.Global
-            DoubleType,
-
-            // ReSharper disable once UnusedMember.Global
-            DecimalType,
-
-            // ReSharper disable once UnusedMember.Global
-            BoolType,
-
-            // ReSharper disable once UnusedMember.Global
-            EnumType,
-
-            // ReSharper disable once UnusedMember.Global
-            StringType,
-
-            // ReSharper disable once UnusedMember.Global
-            DateTimeType,
-
-            // ReSharper disable once UnusedMember.Global
-            TimeSpanType,
-
-            // ReSharper disable once UnusedMember.Global
-            GuidType,
-
-            // ReSharper disable once UnusedMember.Global
-            IpAddressType,
-
-            // ReSharper disable once UnusedMember.Global
-            TimeSpan
-        }
-
-        #endregion
-
         #region Fields And Properties
 
         /// <summary>
-        ///     Save config file name
+        ///     Object for managing locks
         /// </summary>
-        public string ConfigFileName { get; }
+        // ReSharper disable once StaticMemberInGenericType
+        private static readonly object ObjectLockForReadingFile = new object();
 
         /// <summary>
-        ///     Save config data type
+        ///     Object for managing locks
         /// </summary>
-        public TConfigDataType ConfigDataType { get; }
+        // ReSharper disable once StaticMemberInGenericType
+        private static readonly object ObjectLockForChangingFile = new object();
 
         /// <summary>
-        ///     Save xml document for config
+        ///     A collection for storing the bindable members of a config structure
         /// </summary>
-        private readonly XmlDocument _configXmlDocument = new XmlDocument();
-
+        private G9IMember[] _bindableMembers;
 
         /// <summary>
-        ///     Specify config data type element name
-        ///     Value is FullName of config type converted to md5
+        ///     A watcher for considering any changes for bindable members.
         /// </summary>
-        public const string ConfigDataTypeElement = "ConfigDataType";
+        private FileSystemWatcher _watcherForConfigFile;
 
         /// <summary>
-        ///     Save supported types by config management
+        ///     An created instance of the config
         /// </summary>
-        private readonly Type[] _typesSupportedByConfig =
-        {
-            typeof(sbyte), typeof(short), typeof(int), typeof(long), typeof(byte), typeof(ushort), typeof(uint),
-            typeof(ulong), typeof(char), typeof(float), typeof(double), typeof(decimal), typeof(bool), typeof(Enum),
-            typeof(string), typeof(DateTime), typeof(TimeSpan), typeof(Guid), typeof(IPAddress)
-        };
+        // ReSharper disable once AutoPropertyCanBeMadeGetOnly.Local
+        public TConfigDataType ConfigObject { private set; get; }
 
         /// <summary>
-        ///     Access to base app path
-        /// </summary>
-        public readonly string BaseAppPath;
-
-        /// <summary>
-        ///     Access to config extension
-        /// </summary>
-        public readonly string ConfigExtension;
-
-        /// <summary>
-        ///     Access full config path and name
+        ///     Specifies the full path of the config file.
         /// </summary>
         public readonly string FullConfigPath;
+
+        /// <summary>
+        ///     A field for storing the latest options of the config.
+        /// </summary>
+        public readonly G9DtConfigSettings ConfigOptions;
+
+        /// <summary>
+        ///     A field for storing the latest version of the config.
+        /// </summary>
+        public readonly G9DtConfigVersion ConfigVersion;
 
         #endregion
 
@@ -145,487 +74,299 @@ namespace G9ConfigManagement.Helper
         /// <summary>
         ///     Constructor
         /// </summary>
-        /// <param name="configFileName">Specify config file name</param>
-        /// <param name="customConfigObject">
-        ///     Optional: Specify custom object for create config xml file.
-        ///     Just for create, if created don't use
-        /// </param>
+        /// <param name="configInitializationData">Specifies the necessary initialization data for initializing.</param>
+        /// <param name="configVersion">Specifies the latest version of the config.</param>
         /// <param name="forceUpdateWithObject">
-        ///     Specify force update config xml file.
-        ///     Recreate config file
+        ///     Specifies whether the config file must be remade (if it exists) or not.
         /// </param>
-        /// <param name="baseApp">
-        ///     <para>Specified base path of application for create config</para>
-        ///     <para>Notice: if set null => use 'BaseDirectory' value</para>
-        /// </param>
-        /// <param name="configExtension">
-        ///     <para>Specified config extension</para>
-        ///     <para>Notice: if not set argument => use default extension '.config'</para>
-        /// </param>
-        public InitializeConfigFile(string configFileName, TConfigDataType customConfigObject = null,
-            bool forceUpdateWithObject = false, string baseApp = null, string configExtension = "config")
+        public InitializeConfigFile(G9DtConfigInitialize<TConfigDataType> configInitializationData,
+            G9DtConfigVersion configVersion,
+            bool forceUpdateWithObject)
         {
-            // Check and set base app
-            BaseAppPath =
-                string.IsNullOrEmpty(baseApp)
-                    ?
-#if (NETSTANDARD2_1 || NETSTANDARD2_0 || NET35 || NET40 || NET45)
-                    AppDomain.CurrentDomain.BaseDirectory
-#else
-                    AppContext.BaseDirectory
-#endif
-                    : baseApp;
-
-            // Check and Set config file name
-            ConfigFileName = string.IsNullOrEmpty(configFileName)
-                ? throw new ArgumentNullException(nameof(configFileName))
-                : configFileName.IndexOfAny(Path.GetInvalidPathChars()) > 0
-                    ? throw new ArgumentException($"Invalid file name exception: '{configFileName}'",
-                        nameof(configFileName))
-                    : configFileName;
-
-
-            // Check and Set config extension
-            ConfigExtension = string.IsNullOrEmpty(configExtension)
-                ? "config"
-                : configFileName.IndexOfAny(Path.GetInvalidPathChars()) >= 0 ||
-                  (configFileName.Length == 1 && configFileName == ".")
-                    ? throw new ArgumentException($"Invalid file name exception: '{configFileName}'",
-                        nameof(configFileName))
-                    : configExtension.StartsWith(".")
-                        ? configExtension.Substring(1)
-                        : configExtension;
-
             // Set config path
-            FullConfigPath = Path.Combine(BaseAppPath, $"{ConfigFileName}.{ConfigExtension}");
+            FullConfigPath = Path.Combine(configInitializationData.ConfigOptions.ConfigFileLocation,
+                $"{configInitializationData.ConfigOptions.ConfigFileName}.{configInitializationData.ConfigOptions.ConfigFileExtension}");
 
-            // Initialize config if custom object is null
-            ConfigDataType = customConfigObject ?? new TConfigDataType();
+            // Set requirement
+            ConfigObject = configInitializationData.ConfigInitialization;
+            ConfigOptions = configInitializationData.ConfigOptions;
+            ConfigVersion = configVersion;
 
-            // Check version null
-            if (string.IsNullOrEmpty(ConfigDataType.ConfigVersion))
-                throw new NullReferenceException(
-                    $"Config version property '{nameof(ConfigDataType.ConfigVersion)}', can be null!");
+            // Initialize
+            ConfigInitializer(forceUpdateWithObject);
+        }
 
+        /// <summary>
+        ///     Method to update the config
+        /// </summary>
+        /// <param name="newInstance">Specifies a new instance of the config</param>
+        public void UpdateConfig(TConfigDataType newInstance)
+        {
+            // Merge the old value with new value
+            G9Assembly.ObjectAndReflectionTools.MergeObjectsValues(ConfigObject, newInstance, G9EAccessModifier.Public,
+                customProcess: CustomMergeProcessForSomeTypes);
+
+            // Initialize
+            ConfigInitializer(true);
+        }
+
+        public void RestoreConfigByConfigFile()
+        {
+            // Initialize
+            ConfigInitializer(false);
+        }
+
+        /// <summary>
+        ///     Helper method
+        /// </summary>
+        private void ConfigInitializer(bool forceUpdateWithObject)
+        {
             // Create or load config data
-            // If file exists load
+            // If file exists, The core must load it
             if (File.Exists(FullConfigPath))
             {
-                if (customConfigObject != null && forceUpdateWithObject)
+                if (forceUpdateWithObject)
                 {
-                    File.Delete(FullConfigPath);
-                    _configXmlDocument = new XmlDocument();
-                    CreateXmlConfigByType();
+                    CreateJsonConfigByType();
                 }
                 else
                 {
-#if (NETSTANDARD2_1 || NETSTANDARD2_0)
-                    _configXmlDocument.Load(FullConfigPath);
-#else
-                    _configXmlDocument.Load(new FileStream(FullConfigPath, FileMode.Open));
-#endif
-                    // Check data type is equal with this type
-                    if (string.IsNullOrEmpty(_configXmlDocument["Configuration"]?[ConfigDataTypeElement]?.InnerText) ||
-                        _configXmlDocument["Configuration"]?[ConfigDataTypeElement]?.InnerText !=
-                        CreateMd5(ConfigDataType.GetType().FullName ?? ConfigDataType.GetType().Name))
-                        throw new Exception(
-                            $"A file with this path and name '{FullConfigPath}' exists for another data type. If you need this file for new type of data, please delete it to recreate.");
+                    string configJsonText = null;
+                    WaitForFileAccess(fs =>
+                    {
+                        var jsonByteArray = new byte[fs.Length];
+                        _ = fs.Read(jsonByteArray, 0, (int)fs.Length);
+                        configJsonText = Encoding.UTF8.GetString(jsonByteArray);
+                    }, FullConfigPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+
+                    var jsonObject = G9JSON.JsonToObject<TConfigDataType>(configJsonText,
+                        new G9DtJsonParserConfig(G9EAccessModifier.Public, true));
 
                     // If config version change
                     // Remake with change value
-                    if (string.IsNullOrEmpty(_configXmlDocument["Configuration"]?["ConfigVersion"]?.InnerText) ||
-                        _configXmlDocument["Configuration"]?["ConfigVersion"]?.InnerText !=
-                        ConfigDataType.ConfigVersion)
+                    if (jsonObject.ConfigVersion == null ||
+                        jsonObject.ConfigVersion != ConfigObject.ConfigVersion)
                     {
-                        LoadConfigByType(false);
-                        File.Delete(FullConfigPath);
-                        _configXmlDocument = new XmlDocument();
-                        CreateXmlConfigByType();
+                        // Unifying new version by old version
+                        G9Assembly.ObjectAndReflectionTools.MergeObjectsValues(ConfigObject, jsonObject,
+                            G9EAccessModifier.Public,
+                            G9EValueMismatchChecking.AllowMismatchValues, true,
+                            customProcess: CustomMergeProcessForSomeTypes);
+                        CreateJsonConfigByType();
                     }
                     // Else load config from config file
                     else
                     {
-                        LoadConfigByType(true);
+                        // Unifying new version by old version
+                        G9Assembly.ObjectAndReflectionTools.MergeObjectsValues(ConfigObject, jsonObject,
+                            G9EAccessModifier.Public,
+                            G9EValueMismatchChecking.AllowMismatchValues, true,
+                            customProcess: CustomMergeProcessForSomeTypes);
                     }
                 }
             }
             else
             {
                 // Create config file with config object
-                CreateXmlConfigByType();
+                CreateJsonConfigByType();
             }
+
+            BindableMemberHandler();
+        }
+
+        /// Specifies a custom process for desired members if needed.
+        /// <para />
+        /// Notice: The function's result specifies whether the custom process handled merging or not.
+        /// <para />
+        /// If it's returned 'true.' Specifies that the custom process has done the merging process, and the core mustn't do
+        /// anything.
+        /// <para />
+        /// If it's returned 'false.' Specifies that the custom process skipped the merging process, So the core must do it.
+        private static bool CustomMergeProcessForSomeTypes(G9IMember m1, G9IMember m2)
+        {
+            // The merging process passes to the core if the type isn't a bindable value.
+            if (!m2.MemberType.IsGenericParameter ||
+                m2.MemberType.GetGenericTypeDefinition() != typeof(G9DtBindableMember<>)) return false;
+
+            SetBindableValue(m1, m2);
+
+            return true;
         }
 
         /// <summary>
-        ///     Get properties info from custom object
+        ///     Helper method for setting the new value for bindable member if needed (if a difference is existed)
         /// </summary>
-        /// <param name="objectForParse">Specify object for get property info</param>
-        /// <returns></returns>
-        private PropertyInfo[] GetPropertiesInfosFromObject(object objectForParse)
+        private static void SetBindableValue(G9IMember m1, G9IMember m2)
         {
-#if (NETSTANDARD2_1 || NETSTANDARD2_0 || NET35 || NET40 || NET45)
-            if (objectForParse is PropertyInfo)
-                return (objectForParse as PropertyInfo).PropertyType.GetProperties().Where(s =>
-                        !Attribute.IsDefined(s, typeof(G9ConfigIgnore)) && s.CanRead && s.CanWrite)
-                    .ToArray();
-            return objectForParse.GetType().GetProperties()
-                .Where(s => !Attribute.IsDefined(s, typeof(G9ConfigIgnore)) && s.CanRead && s.CanWrite &&
-                            s.Name != nameof(ConfigDataType.ConfigVersion))
-                .ToArray();
-#else
-            if (objectForParse is PropertyInfo info)
-                return info.PropertyType.GetRuntimeProperties().Where(s =>
-                        !s.IsDefined(typeof(G9ConfigIgnore)) && s.CanRead && s.CanWrite)
-                    .ToArray();
-            return objectForParse.GetType().GetRuntimeProperties()
-                .Where(s => !s.IsDefined(typeof(G9ConfigIgnore)) && s.CanRead && s.CanWrite &&
-                            s.Name != nameof(ConfigDataType.ConfigVersion))
-                .ToArray();
-#endif
+            var firstValue = m1.GetValue();
+            var secondValue = m2.GetValue();
+            if (Equals(firstValue, null) || Equals(secondValue, null))
+                return;
+
+            // Access to the value of the bindable member in the first object.
+            var propertyValueOfFirstObject = G9Assembly.ObjectAndReflectionTools.GetPropertiesOfObject(firstValue,
+                    G9EAccessModifier.Public, p => p.Name == nameof(G9DtBindableMember<object>.CurrentValue)).First()
+                .GetValue();
+
+            // Access to the value of the bindable member in the second object.
+            var propertyValueOfSecondObject = G9Assembly.ObjectAndReflectionTools.GetPropertiesOfObject(secondValue,
+                    G9EAccessModifier.Public, p => p.Name == nameof(G9DtBindableMember<object>.CurrentValue)).First()
+                .GetValue();
+
+            // If the values of both members are unequal, the setting process must be done.
+            if (!Equals(propertyValueOfFirstObject, propertyValueOfSecondObject))
+                // Access the method of setting in the first object and pass the new value for the setting.
+                G9Assembly.ObjectAndReflectionTools.GetMethodsOfObject(firstValue,
+                        G9EAccessModifier.Public,
+                        s => s.Name == nameof(G9DtBindableMember<object>.SetNewValue)).First()
+                    .CallMethod(propertyValueOfSecondObject);
         }
 
         /// <summary>
         ///     Create xml config file by data type
         /// </summary>
-        private void CreateXmlConfigByType()
+        private void CreateJsonConfigByType()
         {
-            // Set header
-            var xmlDeclaration = _configXmlDocument.CreateXmlDeclaration("1.0", "UTF-8", null);
-            _configXmlDocument.InsertBefore(xmlDeclaration, _configXmlDocument.DocumentElement);
+            // Set Json File
+            var jsonString = G9JSON.ObjectToJson(ConfigObject,
+                new G9DtJsonWriterConfig(G9EAccessModifier.Public, true, G9ECommentMode.NonstandardMode));
 
-            // Create Element
-            var rootNode = _configXmlDocument.AppendChild(_configXmlDocument.CreateElement("Configuration"));
-
-            // Get all properties without attribute ignore
-            WriteXmlByPropertiesInfo(rootNode,
-                GetPropertiesInfosFromObject(ConfigDataType),
-                ConfigDataType);
-
-            // Add config version to xml
-            AddConfigVersionToXml(rootNode);
-
-            // Add data type xml
-            AddConfigDataTypeToXml(rootNode);
-
-            // Save config file
-#if (NETSTANDARD2_1 || NETSTANDARD2_0)
-            _configXmlDocument.Save(FullConfigPath);
-#else
-            _configXmlDocument.Save(new FileStream(FullConfigPath, FileMode.Create));
-#endif
-        }
-
-        /// <summary>
-        ///     Read xml and set object from xml
-        /// </summary>
-        /// <param name="rootNode">Specify root xml node for write</param>
-        /// <param name="propertiesInfo">Specify all property infos from config object</param>
-        /// <param name="propertyObject">Config object for get values</param>
-        private void WriteXmlByPropertiesInfo(XmlNode rootNode, PropertyInfo[] propertiesInfo, object propertyObject)
-        {
-            // Return if object is null
-            if (propertyObject == null) return;
-
-            // Create elements with properties info
-            if (propertiesInfo.Any())
-                foreach (var t in propertiesInfo)
-                    WriteElement(rootNode, t, propertyObject);
-            else
-                WriteComment("Property with set and get not found!", rootNode);
-        }
-
-        /// <summary>
-        ///     Write element tag and data to xml
-        /// </summary>
-        /// <param name="rootNode">Specify root xml node for write</param>
-        /// <param name="memberPropertyInfo">Specify property information for get information</param>
-        /// <param name="memberObject">Object of config for read comment value</param>
-        private void WriteElement(XmlNode rootNode, PropertyInfo memberPropertyInfo, object memberObject)
-        {
-            // Return if object is null
-            if (memberObject == null) return;
-
-            // Add Comment if need
-            WriteHintCommentToXml(rootNode, memberPropertyInfo);
-
-            // Add notice required if need
-            WriteRequiredNoticeToXml(rootNode, memberPropertyInfo);
-            if (CheckTypeIsSupportedByConfigManagement(memberPropertyInfo.PropertyType))
+            WaitForFileAccess(fs =>
             {
-                XmlNode node = _configXmlDocument.CreateElement(memberPropertyInfo.Name);
-#if (NET35 || NET40)
-                var data = memberPropertyInfo.GetValue(memberObject, new object[0]);
-                node.InnerText = data != null ? data.ToString() : string.Empty;
-#else
-                node.InnerText = memberPropertyInfo.GetValue(memberObject)?.ToString() ?? string.Empty;
-#endif
+                // Save config file
+                var bytesOfConfig = Encoding.UTF8.GetBytes(jsonString);
+                fs.Write(bytesOfConfig, 0, bytesOfConfig.Length);
+            }, FullConfigPath, FileMode.Create, FileAccess.Write, FileShare.Write);
+        }
 
-                rootNode.AppendChild(node);
-            }
-            else
-            {
-                XmlNode node = _configXmlDocument.CreateElement(memberPropertyInfo.Name);
-                var newNode = rootNode.AppendChild(node);
-                WriteXmlByPropertiesInfo(
-                    newNode,
-                    GetPropertiesInfosFromObject(memberPropertyInfo),
-                    memberObject.GetType()
-#if (NETSTANDARD2_1 || NETSTANDARD2_0 || NET35 || NET40 || NET45)
-                        .GetProperty(memberPropertyInfo.Name)
-#else
-                        .GetRuntimeProperty(memberPropertyInfo.Name)
-#endif
-#if (NET35 || NET40)
-                        ?.GetValue(memberObject, new object[0]));
-#else
-                        ?.GetValue(memberObject));
-#endif
-            }
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            _watcherForConfigFile?.Dispose();
+            _bindableMembers = null;
         }
 
         /// <summary>
-        ///     Check property and write comment element to xml if has hint attribute
+        ///     Helper method for managing process of bindable members
         /// </summary>
-        /// <param name="rootNode">Specify root xml node for write</param>
-        /// <param name="memberPropertyInfo">Specify property information for get information</param>
-        private void WriteHintCommentToXml(XmlNode rootNode, PropertyInfo memberPropertyInfo)
+        private void BindableMemberHandler()
         {
-            // Set hint comment for config
-#if (NET35 || NET40)
-            var hintAttr = memberPropertyInfo.GetCustomAttributes(typeof(G9ConfigHint), false).ToArray();
-#else
-            var hintAttr = memberPropertyInfo.GetCustomAttributes(typeof(G9ConfigHint)).ToArray();
-#endif
+            var bindableMembers = GetBindableMembersFromAnObject(ConfigObject);
 
-            if (hintAttr.Any())
-                foreach (var t in hintAttr)
+            // If any bindable members exist, they must add to the specified collection.
+            if (!bindableMembers.Any()) return;
+
+            lock (ObjectLockForChangingFile)
+            {
+                _bindableMembers = bindableMembers;
+            }
+
+            // Initializing a watcher for considering any changes on config file
+            _watcherForConfigFile?.Dispose();
+            _watcherForConfigFile = new FileSystemWatcher(ConfigOptions.ConfigFileLocation,
+                $"{ConfigOptions.ConfigFileName}.{ConfigOptions.ConfigFileExtension}")
+            {
+                NotifyFilter = NotifyFilters.LastWrite,
+                EnableRaisingEvents = true
+            };
+
+            _watcherForConfigFile.Changed += (sender, e) =>
+            {
+                lock (ObjectLockForChangingFile)
                 {
-                    G9ConfigHint oHint;
-                    if ((oHint = t as G9ConfigHint) == null || string.IsNullOrEmpty(oHint.HintForProperty))
-                        continue;
-                    // Write comment
-                    WriteComment(oHint.HintForProperty, rootNode);
+                    string newData = null;
+                    WaitForFileAccess(fs =>
+                    {
+                        var jsonByteArray = new byte[fs.Length];
+                        _ = fs.Read(jsonByteArray, 0, (int)fs.Length);
+                        newData = Encoding.UTF8.GetString(jsonByteArray);
+                    }, FullConfigPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+
+                    var jsonObject =
+                        G9JSON.JsonToObject<TConfigDataType>(newData,
+                            new G9DtJsonParserConfig(G9EAccessModifier.Public, true));
+
+                    var joinBindableMembers = _bindableMembers.Join(
+                        GetBindableMembersFromAnObject(jsonObject), a => a.Name, b => b.Name,
+                        (a, b) => new G9DtTuple<G9IMember>(a, b)
+                    ).ToArray();
+
+                    foreach (var bindableMember in joinBindableMembers)
+                        try
+                        {
+                            SetBindableValue(bindableMember.Item1, bindableMember.Item2);
+                        }
+                        catch
+                        {
+                            // Ignore
+                        }
                 }
+            };
         }
 
         /// <summary>
-        ///     Check property and write required notice element to xml if has hint attribute
+        ///     Helper method for getting bindable members from an object
         /// </summary>
-        /// <param name="rootNode">Specify root xml node for write</param>
-        /// <param name="memberPropertyInfo">Specify property information for get information</param>
-        private void WriteRequiredNoticeToXml(XmlNode rootNode, PropertyInfo memberPropertyInfo)
+        private static G9IMember[] GetBindableMembersFromAnObject(TConfigDataType configObject)
         {
-#if (NET35 || NET40)
-            if (memberPropertyInfo.GetCustomAttributes(typeof(G9ConfigRequired), false).Any())
-#else
-            if (memberPropertyInfo.GetCustomAttributes(typeof(G9ConfigRequired)).Any())
-#endif
-                // Write comment
-                WriteComment(" ### Notice: This element is required! ### ", rootNode);
+            // Getting the total fields and properties that consist of the bindable member.
+            return G9Assembly.ObjectAndReflectionTools.GetFieldsOfObject(configObject,
+                    G9EAccessModifier.Public,
+                    s => s.FieldType.IsGenericType &&
+                         s.FieldType.GetGenericTypeDefinition() == typeof(G9DtBindableMember<>))
+                .Select(s => (G9IMember)s)
+                .Concat(
+                    G9Assembly.ObjectAndReflectionTools.GetPropertiesOfObject(configObject,
+                            G9EAccessModifier.Public,
+                            s => s.PropertyType.IsGenericType &&
+                                 s.PropertyType.GetGenericTypeDefinition() == typeof(G9DtBindableMember<>))
+                        .Select(s => (G9IMember)s)
+                ).ToArray();
         }
 
 
         /// <summary>
-        ///     Write comment to xml
+        ///     Helper method for working by file.
         /// </summary>
-        /// <param name="comment">Custom comment message</param>
-        /// <param name="rootNode">Specify root xml node for write</param>
-        private void WriteComment(string comment, XmlNode rootNode)
+        private static void WaitForFileAccess(Action<FileStream> yourTask, string fullPath, FileMode fileMode,
+            FileAccess fileAccess, FileShare fileShare = FileShare.None)
         {
-            var hintComment = _configXmlDocument.CreateComment(comment);
-            rootNode.AppendChild(hintComment);
-        }
+            var numTries = 0;
+            var isActionException = false;
+            while (true)
+                try
+                {
+                    lock (ObjectLockForReadingFile)
+                    {
+                        Thread.Sleep(9);
 
-        /// <summary>
-        ///     Set config object by xml data
-        /// </summary>
-        /// <param name="checkRequired">Check required item</param>
-        private void LoadConfigByType(bool checkRequired)
-        {
-            ReadXmlByPropertiesInfo(
-                GetPropertiesInfosFromObject(ConfigDataType),
-                ConfigDataType, _configXmlDocument["Configuration"], checkRequired);
-        }
+                        // Attempt to open the file exclusively.
+                        using (var fs = new FileStream(fullPath,
+                                   fileMode, fileAccess,
+                                   fileShare))
+                        {
+                            try
+                            {
+                                yourTask(fs);
+                            }
+                            catch
+                            {
+                                isActionException = true;
+                                throw;
+                            }
 
-        /// <summary>
-        ///     Read xml and set object from xml
-        /// </summary>
-        /// <param name="propertiesInfo">Specify all property infos from config object</param>
-        /// <param name="propertyObject">Config object</param>
-        /// <param name="element">Element for read</param>
-        /// <param name="checkRequired">Check required item</param>
-        private void ReadXmlByPropertiesInfo(PropertyInfo[] propertiesInfo, object propertyObject, XmlElement element,
-            bool checkRequired)
-        {
-            // Return if object is null
-            if (propertyObject == null || element == null) return;
+                            // If we got this far the file is ready
+                            break;
+                        }
+                    }
+                }
+                catch
+                {
+                    if (isActionException || numTries++ > 9) throw;
 
-            // Create elements with properties info
-            foreach (var t in propertiesInfo)
-                ReadElement(t, propertyObject, element, checkRequired);
-        }
-
-        /// <summary>
-        ///     Read element from xml and set object
-        /// </summary>
-        /// <param name="memberPropertyInfo">Specify property information for get information</param>
-        /// <param name="memberObject">Object of config for set values from xml</param>
-        /// <param name="element">Specify element for read</param>
-        /// <param name="checkRequired">Check required item</param>
-        private void ReadElement(PropertyInfo memberPropertyInfo, object memberObject, XmlElement element,
-            bool checkRequired)
-        {
-            if (CheckTypeIsSupportedByConfigManagement(memberPropertyInfo.PropertyType))
-            {
-                // Check for required config item
-                if (checkRequired &&
-#if (NET35 || NET40)
-                    memberPropertyInfo.GetCustomAttributes(typeof(G9ConfigRequired), false)
-#else
-                    memberPropertyInfo.GetCustomAttributes(typeof(G9ConfigRequired))
-#endif
-                        .Any() &&
-                    string.IsNullOrEmpty(element[memberPropertyInfo.Name]?.InnerText))
-                    throw new Exception(
-                        $"Property {memberPropertyInfo.Name} in config is requirement, but isn't set in the config file. config file path and name:'{FullConfigPath}'");
-                // Set config value
-#if (NET35 || NET40)
-                memberPropertyInfo.SetValue(memberObject,
-                    CastStringToPropertyType(memberPropertyInfo, element[memberPropertyInfo.Name]?.InnerText),
-                    new object[0]);
-#else
-                memberPropertyInfo.SetValue(memberObject,
-                    CastStringToPropertyType(memberPropertyInfo, element[memberPropertyInfo.Name]?.InnerText));
-#endif
-            }
-            else
-            {
-                ReadXmlByPropertiesInfo(
-                    GetPropertiesInfosFromObject(memberPropertyInfo),
-                    memberObject.GetType()
-#if (NETSTANDARD2_1 || NETSTANDARD2_0 || NET35 || NET40)
-                        .GetProperty(memberPropertyInfo.Name)
-#else
-                        .GetRuntimeProperty(memberPropertyInfo.Name)
-#endif
-#if (NET35 || NET40)
-                        ?.GetValue(memberObject, new object[0]),
-#else
-                        ?.GetValue(memberObject),
-#endif
-                    element[memberPropertyInfo.Name], checkRequired);
-            }
-        }
-
-        /// <summary>
-        ///     Cast string value to property type
-        /// </summary>
-        /// <param name="propertyInformation">Specify property information for cast</param>
-        /// <param name="value">String value for cast to property type</param>
-        /// <returns></returns>
-        private static object CastStringToPropertyType(PropertyInfo propertyInformation, string value)
-        {
-            try
-            {
-                // Parse for enum
-#if (NET35 || NET40)
-                return propertyInformation.PropertyType?.GetType().BaseType == typeof(Enum)
-                    ? Enum.Parse(propertyInformation.PropertyType, value)
-                    : propertyInformation.PropertyType?.GetType().BaseType == typeof(TimeSpan)
-                        ? TimeSpan.Parse(value)
-                        : Convert.ChangeType(value, propertyInformation.PropertyType);
-#else
-                return propertyInformation.PropertyType.GetTypeInfo().BaseType == typeof(Enum)
-                    ? Enum.Parse(propertyInformation.PropertyType, value)
-                    : propertyInformation.PropertyType.GetTypeInfo().AsType() == typeof(TimeSpan)
-                        ? TimeSpan.Parse(value)
-                        : Convert.ChangeType(value, propertyInformation.PropertyType);
-#endif
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidCastException(
-                    $"Invalid cast exception. property name: '{propertyInformation.Name}'. property value: '{value}'. Type for cast: '{propertyInformation.PropertyType}'.",
-                    ex);
-            }
-        }
-
-        /// <summary>
-        ///     Generate MD5 from text
-        /// </summary>
-        /// <param name="text">Specify text</param>
-        /// <returns>Return MD5 from text</returns>
-        private static string CreateMd5(string text)
-        {
-#if NETSTANDARD2_1
-            using var md5 = MD5.Create();
-            var encoding = Encoding.ASCII;
-            var data = encoding.GetBytes(text);
-
-            Span<byte> hashBytes = stackalloc byte[16];
-            md5.TryComputeHash(data, hashBytes, out var written);
-            if (written != hashBytes.Length)
-                throw new OverflowException();
-
-
-            Span<char> stringBuffer = stackalloc char[32];
-            for (var i = 0; i < hashBytes.Length; i++)
-                hashBytes[i].TryFormat(stringBuffer.Slice(2 * i), out _, "x2");
-            return new string(stringBuffer).ToLower();
-#else
-            // Use input string to calculate MD5 hash
-            using (var md5 = MD5.Create())
-            {
-                var inputBytes = Encoding.ASCII.GetBytes(text);
-                var hashBytes = md5.ComputeHash(inputBytes);
-
-                // Convert the byte array to hexadecimal string
-                var sb = new StringBuilder();
-                foreach (var t in hashBytes)
-                    sb.Append(t.ToString("X2"));
-
-                return sb.ToString().ToLower();
-            }
-#endif
-        }
-
-        /// <summary>
-        ///     Add config version element with comment to xml
-        /// </summary>
-        /// <param name="rootNode">specify node for write</param>
-        private void AddConfigVersionToXml(XmlNode rootNode)
-        {
-            // Write comment
-            WriteComment("Specify config version (automatic set by config management, don't change)", rootNode);
-            XmlNode node = _configXmlDocument.CreateElement(nameof(ConfigDataType.ConfigVersion));
-            node.InnerText = ConfigDataType.ConfigVersion;
-            rootNode.AppendChild(node);
-        }
-
-        /// <summary>
-        ///     Generate and add data type element with comment to xml
-        /// </summary>
-        /// <param name="rootNode">specify node for write</param>
-        private void AddConfigDataTypeToXml(XmlNode rootNode)
-        {
-            var hintComment =
-                _configXmlDocument.CreateComment(
-                    "Specify data type (automatic use by config management, don't change)");
-            rootNode.AppendChild(hintComment);
-            XmlNode node = _configXmlDocument.CreateElement(ConfigDataTypeElement);
-            node.InnerText = CreateMd5(ConfigDataType.GetType().FullName ?? ConfigDataType.GetType().Name);
-            rootNode.AppendChild(node);
-        }
-
-        /// <summary>
-        ///     Check type is supported by config management
-        /// </summary>
-        /// <param name="typeForCheck"></param>
-        /// <returns></returns>
-        private bool CheckTypeIsSupportedByConfigManagement(Type typeForCheck)
-        {
-            // check with supported array type
-            return _typesSupportedByConfig.Any(s => s == typeForCheck);
+                    // Wait for the lock to be released
+                    Thread.Sleep(99 + numTries);
+                }
         }
 
         #endregion

@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks><!--net35;net40;net45;-->netstandard2.0;netstandard2.1</TargetFrameworks>
-    <Version>2.1.0.6</Version>
+    <TargetFrameworks>net35;net40;net45;netstandard2.0;netstandard2.1</TargetFrameworks>
+    <Version>3.0.0.1</Version>
     <Authors>Iman Kari</Authors>
     <Company>G9Studio</Company>
     <Description>Config Management</Description>
@@ -11,19 +11,43 @@
     <PackageProjectUrl>http://www.G9TM.com</PackageProjectUrl>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <AssemblyVersion>2.1.0.6</AssemblyVersion>
-    <FileVersion>2.1.0.6</FileVersion>
+    <AssemblyVersion>3.0.0.2</AssemblyVersion>
+    <FileVersion>3.0.0.2</FileVersion>
     <PackageIcon>G9-Icon.png</PackageIcon>
     <Product>G9 Config Management</Product>
     <RepositoryUrl>https://github.com/ImanKari/G9ConfigManagement</RepositoryUrl>
     <RepositoryType>GitHub</RepositoryType>
     <PackageTags>Config Configuration Management ConfigManagement</PackageTags>
-    <PackageReleaseNotes>-- Update package icon
--- Modify license</PackageReleaseNotes>
+    <PackageReleaseNotes>-- Redesigned attributes.
+-- Implemented easy to use system.
+-- Redesigned structure
+-- Supported JSON file instead of XML
+-- Added usefull methods (RemakeConfigFileByCurrentValue/RemakeAndRestoreByDefaultValue/RemakeAndRestoreByCustomValue/RestoreByConfigFile)
+-- Implemented an abstract structure for adding config structure.</PackageReleaseNotes>
     <NeutralLanguage>en</NeutralLanguage>
+
+	  <EmbedAllSources>True</EmbedAllSources>
+	  <!--<SymbolPackageFormat>snupkg</SymbolPackageFormat>-->
+	  <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+	  <PublishRepositoryUrl>true</PublishRepositoryUrl>
+	  <IncludeSymbols>true</IncludeSymbols>
+	  <IncludeSource>true</IncludeSource>
+	  <Deterministic>true</Deterministic>
+	  <EmbedUntrackedSources>true</EmbedUntrackedSources>
+	  <ProduceReferenceAssembly>true</ProduceReferenceAssembly>
+	  <PackageReadmeFile>README.md</PackageReadmeFile>
+	  <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
   </PropertyGroup>
 
-  <ItemGroup>
+	<ItemGroup>
+		<EmbeddedFiles Include="$(GeneratedAssemblyInfoFile)" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="..\..\README.md" Pack="true" PackagePath="" />
+	</ItemGroup>
+
+	<ItemGroup>
     <None Include="G9-Icon.png">
       <Pack>True</Pack>
       <PackagePath></PackagePath>
@@ -34,8 +58,9 @@
     </None>
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="System.Xml.XmlDocument" Version="4.3.0" />
-  </ItemGroup>
+	<ItemGroup>
+	  <PackageReference Include="G9JSONHandler" Version="3.0.1" />
+	  <PackageReference Include="G9ScheduleManagement" Version="3.1.2" />
+	</ItemGroup>
 
 </Project>

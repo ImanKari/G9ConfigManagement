@@ -1,30 +1,25 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using G9ConfigManagement.Attributes;
+using G9JSONHandler.Attributes;
 
 namespace G9ConfigManagementNUnitTest.Sample
 {
     public class SampleSubConfig
     {
-
         public SampleSubConfig()
         {
             Active = true;
             SaveTime = 30;
+            StartDateTime = DateTime.Parse("1990-09-01");
             SampleSubTwo = new SampleSubSubConfig();
         }
 
         public bool Active { set; get; }
 
-        [G9ConfigHint("Set save time in second")]
         public int SaveTime { set; get; }
 
+        [G9AttrComment("Specifies a second nested config in the main config structure.")]
         public SampleSubSubConfig SampleSubTwo { set; get; }
 
-
-        [G9ConfigHint("Set start date time")]
-        public DateTime StartDateTime { get; }
-
+        public DateTime StartDateTime { set; get; }
     }
 }
