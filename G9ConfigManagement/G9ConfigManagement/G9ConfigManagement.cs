@@ -26,10 +26,22 @@ namespace G9ConfigManagement
         #region Fields And Properties
 
         /// <summary>
-        ///     A category for storing the latest instance of the config.
+        ///     A collection for storing the latest instance of the config.
         /// </summary>
-        private static readonly Dictionary<int, InitializeConfigFile<TConfigDataType>> ConfigsInformation
+        private static readonly Dictionary<int, InitializeConfigFile<TConfigDataType>> LatestConfigCollection
             = new Dictionary<int, InitializeConfigFile<TConfigDataType>>();
+
+        /// <summary>
+        ///     A collection for storing the latest instance of the config.
+        /// </summary>
+        private static readonly Dictionary<int, TConfigDataType> InstanceInitializationCollection
+            = new Dictionary<int, TConfigDataType>();
+
+        /// <summary>
+        ///     A collection for storing the latest instance of the config.
+        /// </summary>
+        private static readonly Dictionary<int, G9DtConfigSettings> ConfigSettingsCollection
+            = new Dictionary<int, G9DtConfigSettings>();
 
         /// <summary>
         ///     Object for managing locks
@@ -52,12 +64,12 @@ namespace G9ConfigManagement
             lock (ObjectLock)
             {
                 // If the instance of the config exists, the core returns it.
-                if (ConfigsInformation.ContainsKey(configCode))
-                    return ConfigsInformation[configCode].ConfigObject;
+                if (LatestConfigCollection.ContainsKey(configCode))
+                    return LatestConfigCollection[configCode].ConfigObject;
             }
 
             // Prepare default data
-            PrepareRequiredData(out var instance, out var initializationData);
+            PrepareRequiredData(configCode, out var instance, out var settings);
 
             try
             {
@@ -65,15 +77,13 @@ namespace G9ConfigManagement
                 {
                     // Initialize or restore config file
                     var newInitialize =
-                        new InitializeConfigFile<TConfigDataType>(initializationData, instance.ConfigVersion,
+                        new InitializeConfigFile<TConfigDataType>(instance, settings, instance.ConfigVersion,
                             false);
                     instance = newInitialize.ConfigObject;
-                    ConfigsInformation.Add(typeof(TConfigDataType).GetHashCode(), newInitialize);
+                    LatestConfigCollection.Add(typeof(TConfigDataType).GetHashCode(), newInitialize);
 
                     // Add basis data
-                    AddConfigBasisData(instance, initializationData.ConfigOptions.ConfigFileName,
-                        initializationData.ConfigOptions.ConfigFileExtension,
-                        initializationData.ConfigOptions.ConfigFileLocation);
+                    AddConfigBasisData(instance, settings);
                 }
             }
             catch (Exception ex)
@@ -88,7 +98,7 @@ namespace G9ConfigManagement
         }
 
         /// <summary>
-        /// Method to update a config structure.
+        ///     Method to update a config structure.
         /// </summary>
         /// <param name="newConfigValue">Specifies a new structure for config.</param>
         public static void Update(TConfigDataType newConfigValue)
@@ -98,15 +108,63 @@ namespace G9ConfigManagement
 
             lock (ObjectLock)
             {
-                if (!ConfigsInformation.ContainsKey(configCode))
+                if (!LatestConfigCollection.ContainsKey(configCode))
                     throw new Exception(
                         $"The specified config '{typeof(TConfigDataType).FullName}' hasn't been created. Before the updating process, it must have been created.");
-                ConfigsInformation[configCode].UpdateConfig(newConfigValue);
+                LatestConfigCollection[configCode].UpdateConfig(newConfigValue);
             }
         }
 
         /// <summary>
-        /// Method to restore a config structure to the default value.
+        ///     Method to assign a custom settings for a config structure.
+        /// </summary>
+        /// <param name="settings">Specifies the desired setting.</param>
+        public static void SetConfigSettings(G9DtConfigSettings settings)
+        {
+            // Prepare config identity by its hash code type
+            var configCode = typeof(TConfigDataType).GetHashCode();
+
+            lock (ObjectLock)
+            {
+                if (ConfigSettingsCollection.ContainsKey(configCode))
+                {
+                    ConfigSettingsCollection[configCode] = settings;
+                    if (LatestConfigCollection.ContainsKey(configCode))
+                        LatestConfigCollection[configCode].RefreshByNewConfigSettings(settings);
+                }
+                else
+                {
+                    ConfigSettingsCollection.Add(configCode, settings);
+                }
+            }
+        }
+
+        /// <summary>
+        ///     Method to set an instance for first initialization.
+        ///     <para />
+        ///     By default, the core uses an instance of config created by its default values.
+        ///     <para />
+        ///     The specified instance is just used for the first initialization, which means if a config file doesn't exist, the
+        ///     config core uses it as an instance for creating the config file. So, it must be used before using the method "
+        ///     <see cref="G9AConfigStructure{TConfigType}.GetConfig" />".
+        /// </summary>
+        /// <param name="instance">Specifies an instance for first initialization.</param>
+        public static void SetInstanceForInitialization(TConfigDataType instance)
+        {
+            // Prepare config identity by its hash code type
+            var configCode = typeof(TConfigDataType).GetHashCode();
+
+            lock (ObjectLock)
+            {
+                if (InstanceInitializationCollection.ContainsKey(configCode))
+                    InstanceInitializationCollection[configCode] = instance;
+                else
+                    InstanceInitializationCollection.Add(configCode, instance);
+            }
+        }
+
+        /// <summary>
+        ///     Method to restore a config structure to the default value.
         /// </summary>
         public static void RestoreToDefault()
         {
@@ -114,31 +172,29 @@ namespace G9ConfigManagement
             var configCode = typeof(TConfigDataType).GetHashCode();
 
             // Prepare default data
-            PrepareRequiredData(out var _, out var initializationData);
+            PrepareRequiredData(configCode, out var instance, out var _);
 
             lock (ObjectLock)
             {
-                if (!ConfigsInformation.ContainsKey(configCode))
+                if (!LatestConfigCollection.ContainsKey(configCode))
                     throw new Exception(
                         $"The specified config '{typeof(TConfigDataType).FullName}' hasn't been created. Before the updating process, it must have been created.");
-                ConfigsInformation[configCode].UpdateConfig(initializationData.ConfigInitialization);
+                LatestConfigCollection[configCode].UpdateConfig(instance);
             }
         }
 
-        /// <summary>
-        /// Method to restore a config structure to the default value that would be gotten from the config file.
-        /// </summary>
+        /// <inheritdoc cref="InitializeConfigFile{TConfigDataType}.RestoreToDefaultByConfigFile" />
         public static void RestoreToDefaultByConfigFile()
         {
             // Prepare config identity by its hash code type
             var configCode = typeof(TConfigDataType).GetHashCode();
-            
+
             lock (ObjectLock)
             {
-                if (!ConfigsInformation.ContainsKey(configCode))
+                if (!LatestConfigCollection.ContainsKey(configCode))
                     throw new Exception(
                         $"The specified config '{typeof(TConfigDataType).FullName}' hasn't been created. Before the updating process, it must have been created.");
-                ConfigsInformation[configCode].RestoreConfigByConfigFile();
+                LatestConfigCollection[configCode].RestoreToDefaultByConfigFile();
             }
         }
 
@@ -175,65 +231,40 @@ namespace G9ConfigManagement
         /// <summary>
         ///     Helper method to fix the necessary requirements in option object
         /// </summary>
-        private static G9DtConfigInitialize<TConfigDataType> FixConfigInitialize(TConfigDataType instance)
+        private static G9DtConfigSettings FixConfigSetting(G9DtConfigSettings settings)
         {
-            var initializedRequirement = instance.Initialize();
+            if (!string.IsNullOrEmpty(settings.ConfigFileName) &&
+                !string.IsNullOrEmpty(settings.ConfigFileExtension) &&
+                !string.IsNullOrEmpty(settings.ConfigFileLocation)) return settings;
 
-            if (Equals(initializedRequirement, default(G9DtConfigInitialize<TConfigDataType>)))
-                initializedRequirement = new G9DtConfigInitialize<TConfigDataType>();
+            var configFileName = string.IsNullOrEmpty(settings.ConfigFileName)
+                ? typeof(TConfigDataType).Name
+                : settings.ConfigFileName;
 
-            if (initializedRequirement.ConfigInitialization == null)
-                initializedRequirement.ConfigInitialization = new TConfigDataType();
+            var configFileExtension =
+                string.IsNullOrEmpty(settings.ConfigFileExtension)
+                    ? "json"
+                    : settings.ConfigFileExtension;
 
-            if (initializedRequirement.ConfigOptions == null)
-                initializedRequirement.ConfigOptions = new G9DtConfigSettings();
-
-            // Fix options
-            initializedRequirement.ConfigOptions = FixConfigOption(initializedRequirement.ConfigOptions);
-
-            return initializedRequirement;
-        }
-
-        /// <summary>
-        ///     Helper method to fix the necessary requirements in option object
-        /// </summary>
-        private static G9DtConfigSettings FixConfigOption(G9DtConfigSettings options)
-        {
-            if (string.IsNullOrEmpty(options.ConfigFileName) || string.IsNullOrEmpty(options.ConfigFileExtension) ||
-                string.IsNullOrEmpty(options.ConfigFileLocation))
-            {
-                var configFileName = string.IsNullOrEmpty(options.ConfigFileName)
-                    ? typeof(TConfigDataType).Name
-                    : options.ConfigFileName;
-
-                var configFileExtension =
-                    string.IsNullOrEmpty(options.ConfigFileExtension)
-                        ? "json"
-                        : options.ConfigFileExtension;
-
-                var fileLocation = string.IsNullOrEmpty(options.ConfigFileLocation)
-                    ?
+            var fileLocation = string.IsNullOrEmpty(settings.ConfigFileLocation)
+                ?
 #if (NET35 || NET40 || NET45)
-                    AppDomain.CurrentDomain.BaseDirectory
+                AppDomain.CurrentDomain.BaseDirectory
 #else
-                    AppContext.BaseDirectory
+                AppContext.BaseDirectory
 #endif
-                    : options.ConfigFileLocation;
+                : settings.ConfigFileLocation;
 
-                return new G9DtConfigSettings(options.ChangeVersionReaction, configFileName, configFileExtension,
-                    fileLocation, options.EnableAutomatedCreatingPath);
-            }
-
-            return options;
+            return new G9DtConfigSettings(settings.ChangeVersionReaction, configFileName, configFileExtension,
+                fileLocation, settings.EnableAutomatedCreatingPath);
         }
 
         /// <summary>
         ///     Helper method to add the necessary config data to the config object
         /// </summary>
-        private static void AddConfigBasisData(TConfigDataType config, string configFileName,
-            string configFileExtension, string configPath)
+        private static void AddConfigBasisData(TConfigDataType instance, G9DtConfigSettings settings)
         {
-            var targetType = config.GetType();
+            var targetType = instance.GetType();
             while (true)
             {
                 targetType = targetType.BaseType;
@@ -246,7 +277,8 @@ namespace G9ConfigManagement
             // ReSharper disable once PossibleNullReferenceException
             var method = targetType.GetMethod("G9SetConfigBasisData", BindingFlags.NonPublic | BindingFlags.Instance);
             // ReSharper disable once PossibleNullReferenceException
-            method.Invoke(config, new object[] { configFileName, configFileExtension, configPath });
+            method.Invoke(instance,
+                new object[] { settings.ConfigFileName, settings.ConfigFileExtension, settings.ConfigFileLocation });
         }
 
         /// <summary>
@@ -265,17 +297,29 @@ namespace G9ConfigManagement
         /// <summary>
         ///     Helper method to prepare an instance and initialization data of config
         /// </summary>
-        private static void PrepareRequiredData(out TConfigDataType instance,
-            out G9DtConfigInitialize<TConfigDataType> initializationData)
+        private static void PrepareRequiredData(int configCode, out TConfigDataType instance,
+            out G9DtConfigSettings settings)
         {
-            // Specifying instance
-            instance = new TConfigDataType();
+            lock (ObjectLock)
+            {
+                // Specifying instance
+                if (InstanceInitializationCollection.ContainsKey(configCode))
+                    instance = InstanceInitializationCollection[configCode];
+                else
+                    instance = new TConfigDataType();
+
+                // Specifying setting
+                if (ConfigSettingsCollection.ContainsKey(configCode))
+                    settings = ConfigSettingsCollection[configCode];
+                else
+                    settings = new G9DtConfigSettings();
+            }
+
+            // fixing config
+            settings = FixConfigSetting(settings);
 
             // Check the necessary validations
             CheckValidations(instance);
-
-            // Access to initialization data
-            initializationData = FixConfigInitialize(instance);
         }
 
         #endregion

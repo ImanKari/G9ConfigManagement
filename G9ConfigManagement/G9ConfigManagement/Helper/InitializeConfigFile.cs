@@ -9,6 +9,7 @@ using G9AssemblyManagement.Enums;
 using G9AssemblyManagement.Interfaces;
 using G9ConfigManagement.Abstract;
 using G9ConfigManagement.DataType;
+using G9ConfigManagement.Enum;
 using G9JSONHandler;
 using G9JSONHandler.DataType;
 using G9JSONHandler.Enum;
@@ -58,14 +59,14 @@ namespace G9ConfigManagement.Helper
         public readonly string FullConfigPath;
 
         /// <summary>
-        ///     A field for storing the latest options of the config.
+        ///     A property for storing the latest settings of the config.
         /// </summary>
-        public readonly G9DtConfigSettings ConfigOptions;
+        public G9DtConfigSettings ConfigSettings { private set; get; }
 
         /// <summary>
         ///     A field for storing the latest version of the config.
         /// </summary>
-        public readonly G9DtConfigVersion ConfigVersion;
+        public G9DtConfigVersion ConfigVersion;
 
         #endregion
 
@@ -74,23 +75,24 @@ namespace G9ConfigManagement.Helper
         /// <summary>
         ///     Constructor
         /// </summary>
-        /// <param name="configInitializationData">Specifies the necessary initialization data for initializing.</param>
+        /// <param name="instance">Specifies the custom instance for initialization.</param>
+        /// <param name="settings">Specifies the settings for config</param>
         /// <param name="configVersion">Specifies the latest version of the config.</param>
         /// <param name="forceUpdateWithObject">
         ///     Specifies whether the config file must be remade (if it exists) or not.
         /// </param>
-        public InitializeConfigFile(G9DtConfigInitialize<TConfigDataType> configInitializationData,
+        public InitializeConfigFile(TConfigDataType instance, G9DtConfigSettings settings,
             G9DtConfigVersion configVersion,
             bool forceUpdateWithObject)
         {
-            // Set config path
-            FullConfigPath = Path.Combine(configInitializationData.ConfigOptions.ConfigFileLocation,
-                $"{configInitializationData.ConfigOptions.ConfigFileName}.{configInitializationData.ConfigOptions.ConfigFileExtension}");
-
             // Set requirement
-            ConfigObject = configInitializationData.ConfigInitialization;
-            ConfigOptions = configInitializationData.ConfigOptions;
+            ConfigObject = instance;
+            ConfigSettings = settings;
             ConfigVersion = configVersion;
+
+            // Set config path
+            FullConfigPath = Path.Combine(ConfigSettings.ConfigFileLocation,
+                $"{ConfigSettings.ConfigFileName}.{ConfigSettings.ConfigFileExtension}");
 
             // Initialize
             ConfigInitializer(forceUpdateWithObject);
@@ -110,10 +112,23 @@ namespace G9ConfigManagement.Helper
             ConfigInitializer(true);
         }
 
-        public void RestoreConfigByConfigFile()
+        /// <summary>
+        ///     Method to restore a config structure to the default value that would be gotten from the config file.
+        /// </summary>
+        public void RestoreToDefaultByConfigFile()
         {
             // Initialize
             ConfigInitializer(false);
+        }
+
+        /// <summary>
+        ///     Method to refresh config with a new config settings
+        /// </summary>
+        /// <param name="newSettings">Specifies a new config settings</param>
+        public void RefreshByNewConfigSettings(G9DtConfigSettings newSettings)
+        {
+            ConfigSettings = newSettings;
+            RestoreToDefaultByConfigFile();
         }
 
         /// <summary>
@@ -147,11 +162,12 @@ namespace G9ConfigManagement.Helper
                     if (jsonObject.ConfigVersion == null ||
                         jsonObject.ConfigVersion != ConfigObject.ConfigVersion)
                     {
-                        // Unifying new version by old version
-                        G9Assembly.ObjectAndReflectionTools.MergeObjectsValues(ConfigObject, jsonObject,
-                            G9EAccessModifier.Public,
-                            G9EValueMismatchChecking.AllowMismatchValues, true,
-                            customProcess: CustomMergeProcessForSomeTypes);
+                        if (ConfigSettings.ChangeVersionReaction == G9EChangeVersionReaction.MergeThenOverwrite)
+                            // Unifying new version by old version
+                            G9Assembly.ObjectAndReflectionTools.MergeObjectsValues(ConfigObject, jsonObject,
+                                G9EAccessModifier.Public,
+                                G9EValueMismatchChecking.AllowMismatchValues, true,
+                                customProcess: CustomMergeProcessForSomeTypes);
                         CreateJsonConfigByType();
                     }
                     // Else load config from config file
@@ -184,6 +200,10 @@ namespace G9ConfigManagement.Helper
         /// If it's returned 'false.' Specifies that the custom process skipped the merging process, So the core must do it.
         private static bool CustomMergeProcessForSomeTypes(G9IMember m1, G9IMember m2)
         {
+            // Skip on config
+            if (m2.MemberType == typeof(G9DtConfigVersion))
+                return true;
+
             // The merging process passes to the core if the type isn't a bindable value.
             if (!m2.MemberType.IsGenericParameter ||
                 m2.MemberType.GetGenericTypeDefinition() != typeof(G9DtBindableMember<>)) return false;
@@ -231,6 +251,10 @@ namespace G9ConfigManagement.Helper
             var jsonString = G9JSON.ObjectToJson(ConfigObject,
                 new G9DtJsonWriterConfig(G9EAccessModifier.Public, true, G9ECommentMode.NonstandardMode));
 
+            // Creates config directory path according to config
+            if (ConfigSettings.EnableAutomatedCreatingPath && !Directory.Exists(ConfigSettings.ConfigFileLocation))
+                Directory.CreateDirectory(ConfigSettings.ConfigFileLocation);
+
             WaitForFileAccess(fs =>
             {
                 // Save config file
@@ -263,8 +287,8 @@ namespace G9ConfigManagement.Helper
 
             // Initializing a watcher for considering any changes on config file
             _watcherForConfigFile?.Dispose();
-            _watcherForConfigFile = new FileSystemWatcher(ConfigOptions.ConfigFileLocation,
-                $"{ConfigOptions.ConfigFileName}.{ConfigOptions.ConfigFileExtension}")
+            _watcherForConfigFile = new FileSystemWatcher(ConfigSettings.ConfigFileLocation,
+                $"{ConfigSettings.ConfigFileName}.{ConfigSettings.ConfigFileExtension}")
             {
                 NotifyFilter = NotifyFilters.LastWrite,
                 EnableRaisingEvents = true

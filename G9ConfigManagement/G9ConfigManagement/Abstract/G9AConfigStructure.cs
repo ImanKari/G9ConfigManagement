@@ -15,6 +15,7 @@ namespace G9ConfigManagement.Abstract
         ///     Specifies the version of the config
         /// </summary>
         [G9AttrRequired]
+        [G9AttrOrder(uint.MaxValue)]
         public abstract G9DtConfigVersion ConfigVersion { set; get; }
 
         /// <summary>
@@ -25,9 +26,7 @@ namespace G9ConfigManagement.Abstract
             return G9ConfigManagement<TConfigType>.GetOrCreate();
         }
 
-        /// <summary>
-        ///     Method to restore config data by existing data in the config file.
-        /// </summary>
+        /// <inheritdoc cref="G9ConfigManagement{TConfigDataType}.RestoreToDefaultByConfigFile"/>
         public static void RestoreByConfigFile()
         {
             G9ConfigManagement<TConfigType>.RestoreToDefaultByConfigFile();
@@ -36,9 +35,7 @@ namespace G9ConfigManagement.Abstract
         /// <summary>
         ///     Method to remake and restore the config by default initialized value.
         ///     <para />
-        ///     In this case, the created config file is remade, and the config data restore by the new specified value.
-        ///     <para />
-        ///     This default value would be gotten from the method '<see cref="Initialize" />.'
+        ///     In this case, the config file is remade, and the config data is restored to the first structure.
         /// </summary>
         public static void RemakeAndRestoreByDefaultValue()
         {
@@ -66,16 +63,16 @@ namespace G9ConfigManagement.Abstract
             G9ConfigManagement<TConfigType>.Update((TConfigType)this);
         }
 
-
-        /// <summary>
-        ///     Method to specify the initialized requirements of config.
-        ///     <para />
-        ///     Notice: This data is automatically used by the config core.
-        /// </summary>
-        /// <returns></returns>
-        public virtual G9DtConfigInitialize<TConfigType> Initialize()
+        /// <inheritdoc cref="G9ConfigManagement{TConfigDataType}.SetConfigSettings" />
+        public static void SetConfigSettings(G9DtConfigSettings settings)
         {
-            return new G9DtConfigInitialize<TConfigType>(new TConfigType(), new G9DtConfigSettings());
+            G9ConfigManagement<TConfigType>.SetConfigSettings(settings);
+        }
+
+        /// <inheritdoc cref="G9ConfigManagement{TConfigDataType}.SetInstanceForInitialization" />
+        public static void SetInstanceForInitialization(TConfigType instance)
+        {
+            G9ConfigManagement<TConfigType>.SetInstanceForInitialization(instance);
         }
 
 

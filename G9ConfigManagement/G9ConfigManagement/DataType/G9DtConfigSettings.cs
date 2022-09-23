@@ -53,12 +53,22 @@ namespace G9ConfigManagement.DataType
 
             if (!string.IsNullOrEmpty(configFileName))
             {
-                var fullFileName = $"{configFileName}.{ConfigFileExtension}";
+                var fullFileName = $"{configFileName}.json";
                 if (G9Assembly.GeneralTools.CheckFilePathValidation(fullFileName, false, false) !=
                     G9EPatchCheckResult.Correct)
                     throw new ArgumentException(
                         $"The fixed value '{configFileName}' in the specified parameter '{nameof(configFileName)}' is incorrect regarding a file name. The core can't use it as a file name.",
                         nameof(configFileName));
+            }
+
+            if (!string.IsNullOrEmpty(configFileExtension))
+            {
+                var fullFileName = $"Config.{configFileExtension}";
+                if (G9Assembly.GeneralTools.CheckFilePathValidation(fullFileName, false, false) !=
+                    G9EPatchCheckResult.Correct)
+                    throw new ArgumentException(
+                        $"The fixed value '{configFileExtension}' in the specified parameter '{nameof(configFileExtension)}' is incorrect regarding a file name. The core can't use it as a file name.",
+                        nameof(configFileExtension));
             }
 
             if (!string.IsNullOrEmpty(configFileLocation))

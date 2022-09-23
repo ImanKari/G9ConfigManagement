@@ -1,4 +1,4 @@
-[![G9TM](https://raw.githubusercontent.com/ImanKari/G9ConfigManagement/main/G9ConfigManagement/Asset/G9ConfigManagement.png)](http://www.g9tm.com/) **G9ConfigManagement**
+[![G9TM](https://raw.githubusercontent.com/ImanKari/G9ConfigManagement/master/G9ConfigManagement/Asset/G9ConfigManagement.png)](http://www.g9tm.com/) **G9ConfigManagement**
 
 [![NuGet version (G9ConfigManagement)](https://img.shields.io/nuget/v/G9ConfigManagement.svg?style=flat-square)](https://www.nuget.org/packages/G9ConfigManagement/)
 [![Azure DevOps Pipeline Build Status](https://raw.githubusercontent.com/ImanKari/G9JSONHandler/main/G9JSONHandler/Asset/AzureDevOpsPipelineBuildStatus.png)](https://g9tm.visualstudio.com/G9ConfigManagement/_apis/build/status/G9ConfigManagement?branchName=master)
@@ -6,7 +6,7 @@
 
 
 # G9ConfigManagement
-## Effective .NET library designed for working with and managing configs; has many useful features. This module provides a flexible framework that is pretty [easy to use and straightforward](#easy-to-use-and-straightforward). On the other hand, it has many functional attributes for making a tremendous and powerful config like [BindabaleMember](#bindabale-member), [Comment](#g9attrcomment), [Encryption](#g9attrencryption), [Required](#g9attrrequired), [G9AttrOrder](#g9attrorder), [CustomName](#g9attrcustomname), [Ignoring](#g9attrignore), [CustomParser](#g9attrcustomname), etc.
+## Effective .NET library designed for working with and managing configs; has many useful features. This module provides a flexible framework that is pretty [easy to use and straightforward](#easy-to-use-and-straightforward). On the other hand, it has many functional attributes for making a tremendous and powerful config like [BindabaleMember](#bindabale-member), [Comment](#g9attrcomment), [Encryption](#g9attrencryption), [Required](#g9attrrequired), [Ordering](#g9attrorder), [CustomName](#g9attrcustomname), [Ignoring](#g9attrignore), [CustomParser](#g9attrcustomname), etc.
 
 # ❇️Guide
 ## Implementation
@@ -20,6 +20,8 @@ using G9ConfigManagement.DataType;
 
 public class SampleConfig : G9AConfigStructure<SampleConfig>
 {
+    // Custom attribute for setting the order of a member in the config file.
+    [G9AttrOrder(4)]
     // Custom attribute for setting the desired comment for config member.
     [G9AttrComment("My custom comment.")]
     public string ApplicationName { set; get; } = "My Custom Application";
@@ -28,13 +30,16 @@ public class SampleConfig : G9AConfigStructure<SampleConfig>
     [G9AttrIgnore]
     public string User = "MyUser";
 
-    // Custom attribute for encrypting a member.
-    [G9AttrEncryption("G9-KaPSgV9Yp6s3v", "H@McQfTjWnZr4u7x")]
+    [G9AttrOrder(1)]
     // Custom attribute for setting a member as a required member.
     [G9AttrRequired]
+    // Custom attribute for encrypting a member.
+    [G9AttrEncryption("G9-KaPSgV9Yp6s3v", "H@McQfTjWnZr4u7x")]
+    
     public string ConnectionString =
         "Server=myServerName\\myInstanceName;Database=myDataBase;User Id=myUsername;Password=myPassword;";
 
+    [G9AttrOrder(2)]
     // Custom attribute for setting a custom name for a member.
     [G9AttrCustomName("MyCustomBindableMember")]
     // This data type creates a bindable member with the desired value type.
@@ -43,6 +48,7 @@ public class SampleConfig : G9AConfigStructure<SampleConfig>
     public G9DtBindableMember<string> CustomBindableMember 
         = new G9DtBindableMember<string>("My bindable value");
 
+    [G9AttrOrder(3)]
     // Custom attribute for specifying the method of storing value for an Enum member.
     // By default, an Enum member saves as a number.
     [G9AttrStoreEnumAsString]
@@ -80,8 +86,10 @@ Console.WriteLine(config.Color); // DarkMagenta
     - The attribute **"G9AttrEncryption"** writes the value of a member in the config with encryption, and on the reading time, it decrypts the member value. The whole process of writing and reading, encryption and decryption, performs automatically.
 - A member in the config structure with the name **"CustomBindableMember"** used the attribute **"G9AttrCustomName"** and passed the **"MyCustomBindableMember"** as a parameter. So, its name in the config file is changed to **"MyCustomBindableMember"**.
 - The member **"ApplicationName"** has the attribute **"G9AttrComment"** that the value **"My custom comment"** passed for that as a parameter. As a result, the specified comment appears above the desired member in the config file.
+- The member "**User**" is ignored by using the attribute "**G9AttrIgnore**", and it wouldn't be in the config file.
+- Some members have set their order in the config file using the attribute "**G9AttrOrder**", which has a numeric parameter for specifying the order. So, they would be located in the config file according to specified ordering.
 - In the end, the config version appeared in the config file, which is essential for managing the config process because the core can control the different versions of a specific config.
-    - ⚠️So, please don't delete or change it manually in any way.
+    - ⚠️If you manually change it, the config core recognizes a conflict between the hard code config version and the file's config version. So, the core would remake it according to settings.
 ## Bindabale Member
 ### By paying attention to the above structure for the config, you can assign a custom event to a bindable member in the below way.
 ```csharp
@@ -93,17 +101,87 @@ config.CustomBindableMember.OnChangeValue +=
         // Do anything
         Console.WriteLine($"Old Value: {oldValue} | New Value: {newValue}");
     };
+
+    // The value of a bindable member is accessible as below:
+    Console.WriteLine(config.CustomBindableMember.CurrentValue); // My bindable value
+
+    // Also, after initialization, you can change it manually as below:
+    // Note: using this method would lead to calling all assigned events.
+    config.CustomBindableMember.SetNewValue("New Value");
 ```
-- After this assignment, any manual change in the config file that has been effective on this member recognizes automatically. Then all events that are assigned to this member would call automatically.
+### After event assignment, any manual change by method "**SetNewValue**" or any change in the config file that has been effective on this member recognizes automatically. Then all events that are assigned to this member would call automatically. A sample of the file change is shown below:
+[![Bindable Member](https://raw.githubusercontent.com/ImanKari/G9ConfigManagement/master/G9ConfigManagement/Asset/BindableMember.gif)](http://www.g9tm.com/) 
+
+## Set Instance for Initialization
+### You can set a custom instance for making the first config file:
+```csharp
+// Setting custom instance for initialization
+SampleConfig.SetInstanceForInitialization(new SampleConfig
+{
+    ApplicationName = "My App",
+    Color = ConsoleColor.Green
+});
+
+// Using
+var config = SampleConfig.GetConfig();
+```
+- ⚠️Make sure you set your custom instance before using method "GetConfig".
+    - Pay attention. If the config file has been created and existed, the core wouldn't use the custom specified instance. For this reason, you must set it before using the method "GetConfig".
+- Of course, you can remake your config file in other methods, which will be explained in the next steps. But, the primary use of this method is that it is used automatically just for the first creation of a config file when no config file exists.
+- On the one hand, you can specify the first config instance by setting values of the config structure itself, like the first structure in this guide. So, using this method isn't mandatory.
+## Set Config Settings
+### Config settings consist of essential options for handling, which can be set manually. In the following it is explained entirely:
+```csharp
+// Setting custom settings for config
+SampleConfig.SetConfigSettings(new G9DtConfigSettings(
+    // A vital setting that specifies how the core must react when a change
+    // in the version occurs between the config structure and config file.
+    changeVersionReaction: G9EChangeVersionReaction.MergeThenOverwrite,
+    // Specifies the config file name
+    // By default, it used its structure name if not set.
+    configFileName: "MyConfig",
+    // Specifies the extension of the config file.
+    // By default, it is "json".
+    configFileExtension: "ini",
+    // Specifies the location of the config file.
+    // By default, it is "AppContext.BaseDirectory" that specifies the application directory.
+    configFileLocation: AppContext.BaseDirectory,
+    // Specifies that if the specified location of the config file
+    // does not exist, the core must create it or not.
+    // By default it is true.
+    enableAutomatedCreatingPath: true
+));
+
+// Using
+var config = SampleConfig.GetConfig();
+```
+- ⚠️Make sure you set your custom settings before using the method "GetConfig".
+    - Pay attention. Better the setting is set before any use of config. Because maybe it leads to some unexpected problems like creating several config files.
+- By default, the parameter changeVersionReaction is set to "MergeThenOverwrite," meaning if a change in the version occurs, the core must merge old config data (which is read from the old config file) to the new structure and then overwrite the new file. This process leads to saving the old data in the previous config version as much as possible. Indeed, the members that have the same name and type in the old and new structure will pair their data.
+    - Also, it can be set to "ForceOverwrite," meaning if a change occurs, the core overwrites the config file with the new structure without paying attention to the old values.
+## Other Useful Methods
+### Some helpful static methods are shown below:
+```csharp
+// Method to remake and restore the config by default initialized value.
+// In this case, the config file is remade, and the config data is restored to the first structure.
+SampleConfig.RemakeAndRestoreByDefaultValue();
+
+// Method to remake and restore the config by custom initialized value.
+// In this case, the created config file is remade, and the config data restore by the new specified value.
+SampleConfig.RemakeAndRestoreByCustomValue(new SampleConfig());
+
+// Method to restore a config structure to the default value that would be gotten from the config file.
+SampleConfig.RestoreByConfigFile();
+```
 ## Attributes
 
 - ### **G9AttrComment**
-  - This attribute enables you to write several comments (notes) for each member in JSON.
+  - This attribute enables you to write several comments (notes) for each member.
     - Note: This attribute can use several times for a member.
 - ### **G9AttrStoreEnumAsString**
-  - This attribute enables you to store an Enum object as a string value in JSON (By default, an Enum object storing as a number).
+  - This attribute enables you to store an Enum object as a string value (By default, an Enum object storing as a number).
 - ### **G9AttrCustomName**
-  - This attribute enables you to choose a custom name for a member for storing in JSON.
+  - This attribute enables you to choose a custom name for a member for storing.
     - Note: At parsing time (JSON to object), the parser can recognize and pair the member automatically.
 - ### **G9AttrOrder**
   - This attribute enables you to specify the order of members of an object when they want to be written to a JSON structure.
@@ -125,9 +203,10 @@ config.CustomBindableMember.OnChangeValue +=
     // }
     ``` 
 - ### **G9AttrIgnore**
-  - This attribute enables you to ignore a member for storing in JSON.
+  - This attribute enables you to ignore a member for storing in the config file.
 - ### **G9AttrCustomParser**
   - This attribute enables you to implement the custom parsing process for (String to Json, Json to String, Both of them).
+    - It's useful when you need to use a custom structure in your config and want to store it with a desired format in the config file for any reason.
   ```csharp
   // A class that consists of custom parser methods.
   public class CustomParser
@@ -180,12 +259,13 @@ config.CustomBindableMember.OnChangeValue +=
       public int Number3 = 7;
   }
     ``` 
-    - Note: The second parameter, 'G9IMemberGetter' in both methods, consists of helpful information about a member (field or property) in an object.
+    - Note: The second parameter, 'G9IMemberGetter' in both parser methods, consists of helpful information about a member (field or property) in an object.
 - ### **G9AttrEncryption**
   - This attribute enables you to add automated encrypting and decrypting processes for a member value.
   - Note: The specified member must have a convertible value to the string type.
   - Note: The priority of executing this attribute is higher than the others.
   - Note: If your member data type is complex, or you need to implement the custom encryption process, you can implement a custom (encryption/decryption) process with the attribute 'G9AttrCustomParser'.
+  - Note: If you need to change an encrypted member in the config file, you can use [this part of the library "G9AssemblyManagement"](https://github.com/ImanKari/G9AssemblyManagement#cryptography-tools).
   ```csharp
   // A class that consists of members with the attribute 'G9AttrEncryption'.
   // This attribute has several overloads.
@@ -204,19 +284,12 @@ config.CustomBindableMember.OnChangeValue +=
       public DateTime Expire = DateTime.Now;
   }
 
-  var objectWithEncryptionAttr = new G9DtSampleClassForEncryptionDecryption();
-
-  // Encryption value
-  var jsonData = objectWithEncryptionAttr.G9ObjectToJson();
   // Result
   //{
   //  "User": "fESJe1TvMr00Q7BKTwVadg==",
   //  "Password": "sWNkdxQ=",
   //  "Expire": "C/WjS9oA+FRLw3myST4EowLiM22tTidXoG7hgJy3ZHo="
   //}
-  var objectData = jsonData.G9JsonToObject<G9DtSampleClassForEncryptionDecryption>();
-  objectData.User; // "G9TM"
-  objectData.Password; // "1990"
   ```
 ## Advanced
 ### Defining the advanced parser for a specified type
@@ -257,13 +330,6 @@ public class CustomParserStructureForClassA : G9ACustomTypeParser<ClassA>
       };
   }
 }
-
-// Usage
-var object = new ClassA();
-var jsonData = object.G9ObjectToJson(); // "{\"G9TM-6\"}"
-var objectData = jsonData.G9JsonToObject<ClassA>();
-objectData.A; // "G9TM"
-objectData.B; // 6
 ```
 - Note: The JSON core creates an instance from "CustomParserStructureForClassA" automatically. So, this class must not have a constructor with a parameter; otherwise, an exception is thrown.
 - Note: Each type can have just one parser. An exception is thrown if you define a parser more than one for a type.
@@ -318,14 +384,6 @@ public class CustomParserStructureForClassB : G9ACustomGenericTypeParser
       };
   }
 }
-
-// Usage
-var object = new ClassB<string>();
-object.B = "None";
-var jsonData = object.G9ObjectToJson(); // "{\"G9-None\"}"
-var objectData = jsonData.G9JsonToObject<ClassB<string>>();
-objectData.A; // "G9TM"
-objectData.B; // "None"
 ```
 - Note: The JSON core creates an instance from 'CustomParserStructureForClassB' automatically. So, this class must not have a constructor with a parameter; otherwise, an exception is thrown.
 - Note: Each type can have just one parser. An exception is thrown if you define a parser more than one for a type.
