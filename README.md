@@ -6,7 +6,7 @@
 
 
 # G9ConfigManagement
-## Effective .NET library designed for working with and managing configs; has many useful features. This module provides a flexible framework that is pretty [easy to use and straightforward](#easy-to-use-and-straightforward). On the other hand, it has many functional attributes for making a tremendous and powerful config like [BindabaleMember](#bindabale-member), [Comment](#g9attrcomment), [Encryption](#g9attrencryption), [Required](#g9attrrequired), [Ordering](#g9attrorder), [CustomName](#g9attrcustomname), [Ignoring](#g9attrignore), [CustomParser](#g9attrcustomname), etc.
+### Effective .NET library designed for working with and managing configs; has many useful features. This module provides a flexible framework that is pretty [easy to use and straightforward](#easy-to-use-and-straightforward). On the other hand, it has many functional attributes for making a tremendous and powerful config like [BindabaleMember](#bindabale-member), [Comment](#g9attrcomment), [Encryption](#g9attrencryption), [Required](#g9attrrequired), [Ordering](#g9attrorder), [CustomName](#g9attrcustomname), [Ignoring](#g9attrignore), [CustomParser](#g9attrcustomname), etc.
 
 # ❇️Guide
 ## Implementation
@@ -183,6 +183,16 @@ SampleConfig.RestoreByConfigFile();
 - ### **G9AttrCustomName**
   - This attribute enables you to choose a custom name for a member for storing.
     - Note: At parsing time (JSON to object), the parser can recognize and pair the member automatically.
+- ### **G9AttrRequired**
+  - With this attribute, you can set a member in your config structure as a requirable member that must have a value for any time.
+    - Suppose a member with this attribute doesn't have a value. Expected, when using the config structure, an exception would be thrown.
+    ```csharp
+    public class Sample
+    {
+        [G9AttrRequired]
+        public int Essential = 3;
+    }
+    ``` 
 - ### **G9AttrOrder**
   - This attribute enables you to specify the order of members of an object when they want to be written to a JSON structure.
     ```csharp

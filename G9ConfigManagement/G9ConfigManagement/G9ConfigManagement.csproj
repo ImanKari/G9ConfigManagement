@@ -5,7 +5,7 @@
     <Version>3.0.1.0</Version>
     <Authors>Iman Kari</Authors>
     <Company>G9Studio</Company>
-    <Description>Config Management</Description>
+    <Description>Effective .NET library designed for working with and managing configs; has many useful features. This module provides a flexible framework that is pretty easy to use and straightforward. On the other hand, it has many functional attributes for making a tremendous and powerful config like BindabaleMember, Comment, Encryption, Required, Ordering, CustomName, Ignoring, CustomParser, etc.</Description>
     <Copyright>G9Studio - 2021</Copyright>
     <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
     <PackageProjectUrl>http://www.G9TM.com</PackageProjectUrl>
@@ -17,7 +17,7 @@
     <Product>G9 Config Management</Product>
     <RepositoryUrl>https://github.com/ImanKari/G9ConfigManagement</RepositoryUrl>
     <RepositoryType>GitHub</RepositoryType>
-    <PackageTags>Config Configuration Management ConfigManagement</PackageTags>
+    <PackageTags>Config Configuration Management ConfigManagement settings Bindabale Comment Encryption</PackageTags>
     <PackageReleaseNotes>-- Redesigned attributes.
 -- Implemented easy to use system.
 -- Redesigned structure
