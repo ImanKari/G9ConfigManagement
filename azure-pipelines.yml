@@ -32,7 +32,7 @@ steps:
   displayName: UnitTest net35
   inputs:
     testSelector: testAssemblies
-    testAssemblyVer2: 'D:\a\1\s\G9ConfigManagementNUnitTest\bin\Release\net35\G9ConfigManagementNUnitTest.dll'
+    testAssemblyVer2: 'D:\a\1\s\G9ConfigManagement\G9ConfigManagementNUnitTest\bin\Release\net35\G9ConfigManagementNUnitTest.dll'
     platform: '$(buildPlatform)'
     configuration: '$(buildConfiguration)'
 
@@ -40,7 +40,7 @@ steps:
   displayName: UnitTest net40
   inputs:
     testSelector: testAssemblies
-    testAssemblyVer2: 'D:\a\1\s\G9ConfigManagementNUnitTest\bin\Release\net40\G9ConfigManagementNUnitTest.dll'
+    testAssemblyVer2: 'D:\a\1\s\G9ConfigManagement\G9ConfigManagementNUnitTest\bin\Release\net40\G9ConfigManagementNUnitTest.dll'
     platform: '$(buildPlatform)'
     configuration: '$(buildConfiguration)'
 
@@ -48,7 +48,7 @@ steps:
   displayName: UnitTest net45
   inputs:
     testSelector: testAssemblies
-    testAssemblyVer2: 'D:\a\1\s\G9ConfigManagementNUnitTest\bin\Release\net45\G9ConfigManagementNUnitTest.dll'
+    testAssemblyVer2: 'D:\a\1\s\G9ConfigManagement\G9ConfigManagementNUnitTest\bin\Release\net45\G9ConfigManagementNUnitTest.dll'
     platform: '$(buildPlatform)'
     configuration: '$(buildConfiguration)'
 
@@ -56,7 +56,7 @@ steps:
   displayName: UnitTest net5.0 nsd2.1
   inputs:
     testSelector: testAssemblies
-    testAssemblyVer2: 'D:\a\1\s\G9ConfigManagementNUnitTest\bin\Release\net5.0\G9ConfigManagementNUnitTest.dll'
+    testAssemblyVer2: 'D:\a\1\s\G9ConfigManagement\G9ConfigManagementNUnitTest\bin\Release\net5.0\G9ConfigManagementNUnitTest.dll'
     platform: '$(buildPlatform)'
     configuration: '$(buildConfiguration)'
 
