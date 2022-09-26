@@ -208,10 +208,10 @@ namespace G9ConfigManagement
                 throw new NullReferenceException(
                     $"The specified property '{nameof(instance.ConfigVersion)}' in class '{typeof(TConfigDataType).FullName}' for getting the version of config can't be uninitialized or null.");
 
-            var members = G9Assembly.ObjectAndReflectionTools.GetFieldsOfObject(instance, G9EAccessModifier.Public,
+            var members = G9Assembly.ReflectionTools.GetFieldsOfObject(instance, G9EAccessModifier.Public,
                     s => s.GetCustomAttributes(typeof(G9AttrRequiredAttribute), true).Any())
                 .Select(s => (G9IMember)s)
-                .Concat(G9Assembly.ObjectAndReflectionTools.GetPropertiesOfObject(instance, G9EAccessModifier.Public,
+                .Concat(G9Assembly.ReflectionTools.GetPropertiesOfObject(instance, G9EAccessModifier.Public,
                         s => s.GetCustomAttributes(typeof(G9AttrRequiredAttribute), true).Any())
                     .Select(s => (G9IMember)s)).ToArray();
 

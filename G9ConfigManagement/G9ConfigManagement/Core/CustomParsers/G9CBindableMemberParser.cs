@@ -23,7 +23,7 @@ namespace G9ConfigManagement.Core.CustomParsers
         public override string ObjectToString(object objectForParsing, Type[] genericTypes,
             G9IMemberGetter accessToObjectMember, Action<string> addCustomComment)
         {
-            var property = G9Assembly.ObjectAndReflectionTools.GetPropertiesOfObject(objectForParsing,
+            var property = G9Assembly.ReflectionTools.GetPropertiesOfObject(objectForParsing,
                 G9EAccessModifier.Public, p => p.Name == nameof(G9DtBindableMember<object>.CurrentValue)).First();
 
             return G9Assembly.TypeTools.SmartChangeType<string>(property.GetValue());
@@ -38,7 +38,7 @@ namespace G9ConfigManagement.Core.CustomParsers
                 typeof(G9DtBindableMember<>), genericTypes);
 
             // Access to the property 'CurrentValue' and set the value of that
-            var property = G9Assembly.ObjectAndReflectionTools.GetPropertiesOfObject(instance,
+            var property = G9Assembly.ReflectionTools.GetPropertiesOfObject(instance,
                 G9EAccessModifier.Public, p => p.Name == nameof(G9DtBindableMember<object>.CurrentValue)).First();
             property.SetValue(G9Assembly.TypeTools.SmartChangeType(stringForParsing, genericTypes[0]));
 

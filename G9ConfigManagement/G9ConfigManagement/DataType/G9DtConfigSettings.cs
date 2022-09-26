@@ -54,7 +54,7 @@ namespace G9ConfigManagement.DataType
             if (!string.IsNullOrEmpty(configFileName))
             {
                 var fullFileName = $"{configFileName}.json";
-                if (G9Assembly.GeneralTools.CheckFilePathValidation(fullFileName, false, false) !=
+                if (G9Assembly.InputOutputTools.CheckFilePathValidation(fullFileName, false, false) !=
                     G9EPatchCheckResult.Correct)
                     throw new ArgumentException(
                         $"The fixed value '{configFileName}' in the specified parameter '{nameof(configFileName)}' is incorrect regarding a file name. The core can't use it as a file name.",
@@ -64,7 +64,7 @@ namespace G9ConfigManagement.DataType
             if (!string.IsNullOrEmpty(configFileExtension))
             {
                 var fullFileName = $"Config.{configFileExtension}";
-                if (G9Assembly.GeneralTools.CheckFilePathValidation(fullFileName, false, false) !=
+                if (G9Assembly.InputOutputTools.CheckFilePathValidation(fullFileName, false, false) !=
                     G9EPatchCheckResult.Correct)
                     throw new ArgumentException(
                         $"The fixed value '{configFileExtension}' in the specified parameter '{nameof(configFileExtension)}' is incorrect regarding a file name. The core can't use it as a file name.",
@@ -74,7 +74,7 @@ namespace G9ConfigManagement.DataType
             if (!string.IsNullOrEmpty(configFileLocation))
             {
                 var result =
-                    G9Assembly.GeneralTools.CheckDirectoryPathValidation(configFileLocation, true,
+                    G9Assembly.InputOutputTools.CheckDirectoryPathValidation(configFileLocation, true,
                         !enableAutomatedCreatingPath);
                 switch (result)
                 {

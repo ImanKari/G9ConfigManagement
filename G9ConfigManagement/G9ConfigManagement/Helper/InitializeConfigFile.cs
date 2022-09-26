@@ -105,7 +105,7 @@ namespace G9ConfigManagement.Helper
         public void UpdateConfig(TConfigDataType newInstance)
         {
             // Merge the old value with new value
-            G9Assembly.ObjectAndReflectionTools.MergeObjectsValues(ConfigObject, newInstance, G9EAccessModifier.Public,
+            G9Assembly.ReflectionTools.MergeObjectsValues(ConfigObject, newInstance, G9EAccessModifier.Public,
                 customProcess: CustomMergeProcessForSomeTypes);
 
             // Initialize
@@ -147,12 +147,12 @@ namespace G9ConfigManagement.Helper
                 else
                 {
                     string configJsonText = null;
-                    WaitForFileAccess(fs =>
+                    G9Assembly.InputOutputTools.WaitForAccessToFile(FullConfigPath, fs =>
                     {
                         var jsonByteArray = new byte[fs.Length];
                         _ = fs.Read(jsonByteArray, 0, (int)fs.Length);
                         configJsonText = Encoding.UTF8.GetString(jsonByteArray);
-                    }, FullConfigPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                    }, FileMode.Open, FileAccess.Read, FileShare.Read);
 
                     var jsonObject = G9JSON.JsonToObject<TConfigDataType>(configJsonText,
                         new G9DtJsonParserConfig(G9EAccessModifier.Public, true));
@@ -164,7 +164,7 @@ namespace G9ConfigManagement.Helper
                     {
                         if (ConfigSettings.ChangeVersionReaction == G9EChangeVersionReaction.MergeThenOverwrite)
                             // Unifying new version by old version
-                            G9Assembly.ObjectAndReflectionTools.MergeObjectsValues(ConfigObject, jsonObject,
+                            G9Assembly.ReflectionTools.MergeObjectsValues(ConfigObject, jsonObject,
                                 G9EAccessModifier.Public,
                                 G9EValueMismatchChecking.AllowMismatchValues, true,
                                 customProcess: CustomMergeProcessForSomeTypes);
@@ -174,7 +174,7 @@ namespace G9ConfigManagement.Helper
                     else
                     {
                         // Unifying new version by old version
-                        G9Assembly.ObjectAndReflectionTools.MergeObjectsValues(ConfigObject, jsonObject,
+                        G9Assembly.ReflectionTools.MergeObjectsValues(ConfigObject, jsonObject,
                             G9EAccessModifier.Public,
                             G9EValueMismatchChecking.AllowMismatchValues, true,
                             customProcess: CustomMergeProcessForSomeTypes);
@@ -224,19 +224,19 @@ namespace G9ConfigManagement.Helper
                 return;
 
             // Access to the value of the bindable member in the first object.
-            var propertyValueOfFirstObject = G9Assembly.ObjectAndReflectionTools.GetPropertiesOfObject(firstValue,
+            var propertyValueOfFirstObject = G9Assembly.ReflectionTools.GetPropertiesOfObject(firstValue,
                     G9EAccessModifier.Public, p => p.Name == nameof(G9DtBindableMember<object>.CurrentValue)).First()
                 .GetValue();
 
             // Access to the value of the bindable member in the second object.
-            var propertyValueOfSecondObject = G9Assembly.ObjectAndReflectionTools.GetPropertiesOfObject(secondValue,
+            var propertyValueOfSecondObject = G9Assembly.ReflectionTools.GetPropertiesOfObject(secondValue,
                     G9EAccessModifier.Public, p => p.Name == nameof(G9DtBindableMember<object>.CurrentValue)).First()
                 .GetValue();
 
             // If the values of both members are unequal, the setting process must be done.
             if (!Equals(propertyValueOfFirstObject, propertyValueOfSecondObject))
                 // Access the method of setting in the first object and pass the new value for the setting.
-                G9Assembly.ObjectAndReflectionTools.GetMethodsOfObject(firstValue,
+                G9Assembly.ReflectionTools.GetMethodsOfObject(firstValue,
                         G9EAccessModifier.Public,
                         s => s.Name == nameof(G9DtBindableMember<object>.SetNewValue)).First()
                     .CallMethod(propertyValueOfSecondObject);
@@ -251,16 +251,23 @@ namespace G9ConfigManagement.Helper
             var jsonString = G9JSON.ObjectToJson(ConfigObject,
                 new G9DtJsonWriterConfig(G9EAccessModifier.Public, true, G9ECommentMode.NonstandardMode));
 
+            // Dispose before core change
+            _watcherForConfigFile?.Dispose();
+
             // Creates config directory path according to config
             if (ConfigSettings.EnableAutomatedCreatingPath && !Directory.Exists(ConfigSettings.ConfigFileLocation))
                 Directory.CreateDirectory(ConfigSettings.ConfigFileLocation);
 
-            WaitForFileAccess(fs =>
+            lock (ObjectLockForReadingFile)
             {
-                // Save config file
-                var bytesOfConfig = Encoding.UTF8.GetBytes(jsonString);
-                fs.Write(bytesOfConfig, 0, bytesOfConfig.Length);
-            }, FullConfigPath, FileMode.Create, FileAccess.Write, FileShare.Write);
+                Thread.Sleep(9);
+                G9Assembly.InputOutputTools.WaitForAccessToFile(FullConfigPath, fs =>
+                {
+                    // Save config file
+                    var bytesOfConfig = Encoding.UTF8.GetBytes(jsonString);
+                    fs.Write(bytesOfConfig, 0, bytesOfConfig.Length);
+                }, FileMode.Create, FileAccess.Write, FileShare.Write);
+            }
         }
 
         /// <inheritdoc />
@@ -286,7 +293,6 @@ namespace G9ConfigManagement.Helper
             }
 
             // Initializing a watcher for considering any changes on config file
-            _watcherForConfigFile?.Dispose();
             _watcherForConfigFile = new FileSystemWatcher(ConfigSettings.ConfigFileLocation,
                 $"{ConfigSettings.ConfigFileName}.{ConfigSettings.ConfigFileExtension}")
             {
@@ -299,12 +305,13 @@ namespace G9ConfigManagement.Helper
                 lock (ObjectLockForChangingFile)
                 {
                     string newData = null;
-                    WaitForFileAccess(fs =>
+                    Thread.Sleep(9);
+                    G9Assembly.InputOutputTools.WaitForAccessToFile(FullConfigPath, fs =>
                     {
                         var jsonByteArray = new byte[fs.Length];
                         _ = fs.Read(jsonByteArray, 0, (int)fs.Length);
                         newData = Encoding.UTF8.GetString(jsonByteArray);
-                    }, FullConfigPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                    }, FileMode.Open, FileAccess.Read, FileShare.Read);
 
                     var jsonObject =
                         G9JSON.JsonToObject<TConfigDataType>(newData,
@@ -334,63 +341,18 @@ namespace G9ConfigManagement.Helper
         private static G9IMember[] GetBindableMembersFromAnObject(TConfigDataType configObject)
         {
             // Getting the total fields and properties that consist of the bindable member.
-            return G9Assembly.ObjectAndReflectionTools.GetFieldsOfObject(configObject,
+            return G9Assembly.ReflectionTools.GetFieldsOfObject(configObject,
                     G9EAccessModifier.Public,
                     s => s.FieldType.IsGenericType &&
                          s.FieldType.GetGenericTypeDefinition() == typeof(G9DtBindableMember<>))
                 .Select(s => (G9IMember)s)
                 .Concat(
-                    G9Assembly.ObjectAndReflectionTools.GetPropertiesOfObject(configObject,
+                    G9Assembly.ReflectionTools.GetPropertiesOfObject(configObject,
                             G9EAccessModifier.Public,
                             s => s.PropertyType.IsGenericType &&
                                  s.PropertyType.GetGenericTypeDefinition() == typeof(G9DtBindableMember<>))
                         .Select(s => (G9IMember)s)
                 ).ToArray();
-        }
-
-
-        /// <summary>
-        ///     Helper method for working by file.
-        /// </summary>
-        private static void WaitForFileAccess(Action<FileStream> yourTask, string fullPath, FileMode fileMode,
-            FileAccess fileAccess, FileShare fileShare = FileShare.None)
-        {
-            var numTries = 0;
-            var isActionException = false;
-            while (true)
-                try
-                {
-                    lock (ObjectLockForReadingFile)
-                    {
-                        Thread.Sleep(9);
-
-                        // Attempt to open the file exclusively.
-                        using (var fs = new FileStream(fullPath,
-                                   fileMode, fileAccess,
-                                   fileShare))
-                        {
-                            try
-                            {
-                                yourTask(fs);
-                            }
-                            catch
-                            {
-                                isActionException = true;
-                                throw;
-                            }
-
-                            // If we got this far the file is ready
-                            break;
-                        }
-                    }
-                }
-                catch
-                {
-                    if (isActionException || numTries++ > 9) throw;
-
-                    // Wait for the lock to be released
-                    Thread.Sleep(99 + numTries);
-                }
         }
 
         #endregion
